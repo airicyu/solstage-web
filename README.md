@@ -1,2 +1,1 @@
-# solstage-web
-Solstage Web
+# solstage
