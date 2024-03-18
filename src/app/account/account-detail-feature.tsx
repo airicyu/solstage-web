@@ -31,10 +31,13 @@ export default function AccountDetailFeature() {
 
   return (
     <div>
+      {/* <AppHero
+        title={<AccountBalance address={address} />} */}
       <AppHero
-        title={<AccountBalance address={address} />}
+        title={"Solstage"}
         subtitle={
           <div className="my-4">
+            Your wallet:{" "}
             <ExplorerLink
               path={`account/${address}`}
               label={ellipsify(address.toString())}
@@ -42,9 +45,9 @@ export default function AccountDetailFeature() {
           </div>
         }
       >
-        <div className="my-4">
+        {/* <div className="my-4">
           <AccountButtons address={address} />
-        </div>
+        </div> */}
       </AppHero>
       <div className="space-y-8">
         {/* <AccountTokens address={address} /> */}

@@ -17,6 +17,12 @@ import {
 import account from "@coral-xyz/anchor/dist/cjs/program/namespace/account";
 import { NFTAssetResultData } from "./nft-query/asset-result-data";
 import { Card, Flex, Tabs, Tooltip } from "antd";
+import {
+  AppstoreOutlined,
+  GiftOutlined,
+  SketchOutlined,
+  StopOutlined,
+} from "@ant-design/icons";
 
 export function AccountBalance({ address }: { address: PublicKey }) {
   const query = useGetBalance({ address });
@@ -378,12 +384,38 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
             size="large"
             items={[
               {
-                label: `Stage`,
+                label: (
+                  <>
+                    <SketchOutlined /> STAGE
+                  </>
+                ),
                 key: "stage",
                 children: stageDisplay,
               },
               {
-                label: `Junkbox`,
+                label: (
+                  <>
+                    <AppstoreOutlined /> BACKSTAGE
+                  </>
+                ),
+                key: "backstage",
+                children: <>Up coming!</>,
+              },
+              {
+                label: (
+                  <>
+                    <GiftOutlined /> GIFT
+                  </>
+                ),
+                key: "gift",
+                children: <>Up coming!</>,
+              },
+              {
+                label: (
+                  <>
+                    <StopOutlined /> JUNKBOX
+                  </>
+                ),
                 key: "junkbox",
                 children: junkboxDisplay,
               },
