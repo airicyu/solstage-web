@@ -2,7 +2,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { IconRefresh } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppModal, ellipsify } from "../ui/ui-layout";
 import { useCluster } from "../cluster/cluster-data-access";
 import { ExplorerLink } from "../cluster/cluster-ui";
@@ -16,13 +16,20 @@ import {
 } from "./account-data-access";
 import account from "@coral-xyz/anchor/dist/cjs/program/namespace/account";
 import { NFTAssetResultData } from "./nft-query/asset-result-data";
-import { Card, Flex, Tabs, Tooltip } from "antd";
 import {
   AppstoreOutlined,
   GiftOutlined,
   SketchOutlined,
   StopOutlined,
 } from "@ant-design/icons";
+import { useProgram } from "../program/program-data-access";
+import { bytesToHexString, hashSha256 } from "../utils/hash";
+import { BN } from "bn.js";
+import { uploadFilter, useUploadFilter } from "../filter/upload-filter";
+import { ShadowFile } from "@shadow-drive/sdk";
+import { Blob } from "buffer";
+import toast from "react-hot-toast";
+import { Button, Card, Flex, Tabs, Tooltip } from "antd";
 
 export function AccountBalance({ address }: { address: PublicKey }) {
   const query = useGetBalance({ address });
@@ -80,6 +87,15 @@ export function AccountButtons({ address }: { address: PublicKey }) {
   const [showAirdropModal, setShowAirdropModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const { initialize, getFilterAccount } = useProgram();
+  const { storageAcc, initAccount } = useUploadFilter();
+
+  const needInit = useMemo(() => {
+    if (getFilterAccount.isLoading) {
+      return false;
+    }
+    return !getFilterAccount.data?.value || storageAcc === null;
+  }, [getFilterAccount.data?.value, getFilterAccount.isLoading, storageAcc]);
 
   return (
     <div>
@@ -99,7 +115,27 @@ export function AccountButtons({ address }: { address: PublicKey }) {
         hide={() => setShowSendModal(false)}
       />
       <div className="space-x-2">
-        <button
+        {needInit && (
+          <Button
+            type="primary"
+            onClick={async () => {
+              if (getFilterAccount.isLoading) {
+                return;
+              }
+              if (storageAcc === null) {
+                await initAccount();
+              }
+
+              if (!getFilterAccount.data?.value) {
+                console.log("need inital filter account");
+              }
+              await initialize.mutateAsync();
+            }}
+          >
+            Initialize Account
+          </Button>
+        )}
+        {/* <button
           disabled={cluster.network?.includes("mainnet")}
           className="btn btn-xs lg:btn-md btn-outline"
           onClick={() => setShowAirdropModal(true)}
@@ -118,74 +154,143 @@ export function AccountButtons({ address }: { address: PublicKey }) {
           onClick={() => setShowReceiveModal(true)}
         >
           Receive
-        </button>
+        </button> */}
       </div>
     </div>
   );
 }
 
+export function NftCard({
+  item,
+  defaultShowImage = true,
+  currentType,
+  moveItemHandler,
+}: {
+  item: NFTAssetResultData;
+  defaultShowImage?: boolean;
+  currentType: string;
+  moveItemHandler: (item: NFTAssetResultData, from: string, to: string) => void;
+}) {
+  const [showImage, setShowImage] = useState(defaultShowImage);
+  const flipShowImage = useCallback(() => {
+    if (!defaultShowImage) {
+      setShowImage((prev) => !prev);
+    }
+  }, [defaultShowImage]);
+
+  return (
+    <Card
+      key={item.address.toString()}
+      title={
+        <div className="">
+          {(item.group && (
+            <a target="_blank" href={`https://solscan.io/token/${item.group}`}>
+              {item.groupName}
+            </a>
+          )) ||
+            item.groupName}
+        </div>
+      }
+      style={{ width: 250 }}
+    >
+      <Tooltip
+        title={
+          <>
+            <div>
+              attributes:
+              <ul>
+                {item.attributes.map((attr) => (
+                  <li key={attr.traitType}>
+                    {" - "}
+                    {attr.traitType}: {attr.value}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </>
+        }
+        trigger="click"
+      >
+        <div className="">
+          <a target="_blank" href={`https://solscan.io/token/${item.address}`}>
+            {item.name}
+          </a>
+        </div>
+        <div
+          className={
+            "w-[205px] h-[205px] " +
+            (showImage ? "" : "border-dashed border-2 border-grey-600")
+          }
+          onClick={flipShowImage}
+        >
+          <div className="w-[205px] h-[205px] ">
+            {showImage && item.imageUrl ? (
+              <img
+                src={item.imageUrl}
+                style={{
+                  width: 200,
+                  height: 200,
+                  objectFit: "contain",
+                }}
+              />
+            ) : null}
+          </div>
+        </div>
+      </Tooltip>
+      <hr />
+      <>
+        {currentType !== "stage" && (
+          <Button
+            onClick={(e) => {
+              moveItemHandler(item, currentType, "stage");
+            }}
+          >
+            <SketchOutlined />
+          </Button>
+        )}
+        {currentType !== "backstage" && (
+          <Button
+            onClick={(e) => {
+              moveItemHandler(item, currentType, "backstage");
+            }}
+          >
+            <AppstoreOutlined />
+          </Button>
+        )}
+        {currentType !== "junkbox" && (
+          <Button
+            onClick={(e) => {
+              moveItemHandler(item, currentType, "junkbox");
+            }}
+          >
+            <StopOutlined />
+          </Button>
+        )}
+      </>
+    </Card>
+  );
+}
+
 export function NftsDisplay({
   items,
-  showImage = true,
+  defaultShowImage = true,
+  currentType,
+  moveItemHandler,
 }: {
   items: NFTAssetResultData[];
-  showImage?: boolean;
+  defaultShowImage?: boolean;
+  currentType: string;
+  moveItemHandler: (item: NFTAssetResultData, from: string, to: string) => void;
 }) {
   const nftCards = items.map((item: NFTAssetResultData) => {
     return (
-      <Card
+      <NftCard
         key={item.address.toString()}
-        title={
-          <div className="">
-            <a
-              target="_blank"
-              href={`https://solscan.io/token/${item.address}`}
-            >
-              {item.name}
-            </a>
-          </div>
-        }
-        style={{ width: 250 }}
-      >
-        <Tooltip
-          title={
-            <>
-              <div>
-                attributes:
-                <ul>
-                  {item.attributes.map((attr) => (
-                    <li key={attr.traitType}>
-                      {" - "}
-                      {attr.traitType}: {attr.value}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </>
-          }
-          trigger="click"
-        >
-          <div
-            className={
-              "w-[205px] h-[205px] " +
-              (showImage ? "" : "border-dashed border-2 border-grey-600")
-            }
-          >
-            <div className="w-[205px] h-[205px] ">
-              {showImage && item.imageUrl ? (
-                <img
-                  src={item.imageUrl}
-                  style={{
-                    width: 200,
-                    height: 200,
-                    objectFit: "contain",
-                  }}
-                />
-              ) : null}
-            </div>
-          </div>
-        </Tooltip>
-      </Card>
+        item={item}
+        defaultShowImage={defaultShowImage}
+        currentType={currentType}
+        moveItemHandler={moveItemHandler}
+      />
     );
   });
 
@@ -243,7 +348,7 @@ export function NftsDisplay({
             </td>
             <td className="text-right">
               <span className="font-mono">
-                {showImage && item.imageUrl ? (
+                {defaultShowImage && item.imageUrl ? (
                   <img
                     src={item.imageUrl}
                     style={{
@@ -275,40 +380,227 @@ export function NftsDisplay({
   );
 }
 
+export type Filter = {
+  stage: string[];
+  backstage: string[];
+  loadFilters: string[];
+};
+
+type FilterState = {
+  url?: string;
+  hash?: string;
+  filter: Filter | null;
+};
+
 export function AccountNFTs({ address }: { address: PublicKey }) {
   // const [showAll, setShowAll] = useState(false);
   const showAll = true;
   const query = useGetWalletNfts({ address });
   const client = useQueryClient();
+  const { getFilterAccount, setFilter } = useProgram();
+  const { storageAcc } = useUploadFilter();
+  const [filterState, setFilterState] = useState<FilterState>({
+    url: undefined,
+    hash: undefined,
+    filter: null,
+  });
+  const { uploadFilter, refreshFlag, setRefreshFlag } = useUploadFilter();
 
-  const whitelistFilter = {
-    collections: {
-      J1S9H3QjnRtBbbuD4HjPV6RpRhwuk4zKbxsnCHuTgh9w: 1,
-      "5f2PvbmKd9pRLjKdMr8nrK8fNisLi7irjB6X5gopnKpB": 1,
-    },
-  };
+  const needInit = useMemo(() => {
+    if (getFilterAccount.isLoading) {
+      return false;
+    }
+    return !getFilterAccount.data?.value || storageAcc === null;
+  }, [getFilterAccount.data?.value, getFilterAccount.isLoading, storageAcc]);
+
+  /**
+   * when re-upload filter, refresh filter account
+   */
+  useEffect(() => {
+    if (refreshFlag) {
+      setRefreshFlag(false);
+      client.invalidateQueries({
+        queryKey: ["get-filter-account", { cluster: "devnet" }],
+      });
+      getFilterAccount.refetch();
+    }
+  }, [client, getFilterAccount, refreshFlag, setRefreshFlag]);
+
+  /**
+   * load filter url & hash from filter account
+   */
+  useEffect(() => {
+    if (!getFilterAccount.data?.value) {
+      return;
+    }
+    const filterHash = bytesToHexString(
+      Array.from(getFilterAccount.data.value.data as Buffer).slice(8, 8 + 32)
+    );
+    if (!filterHash) {
+      return;
+    }
+
+    const urlBytesLenth = new BN(
+      Array.from(getFilterAccount.data.value.data as Buffer).slice(
+        8 + 32,
+        8 + 32 + 4
+      ),
+      "le"
+    ).toNumber();
+    if (!urlBytesLenth) {
+      return;
+    }
+
+    const filterUrl = Buffer.from(
+      Array.from(getFilterAccount.data.value.data as Buffer).slice(
+        8 + 32 + 4,
+        8 + 32 + 4 + urlBytesLenth
+      )
+    ).toString();
+
+    setFilterState((prev) => {
+      return { ...prev, hash: filterHash, url: filterUrl };
+    });
+  }, [getFilterAccount.data?.value]);
+
+  /**
+   * check filter hash and update Filter
+   */
+  useEffect(() => {
+    (async () => {
+      if (!filterState.url) {
+        return;
+      }
+
+      const filterText = await (
+        await fetch(filterState.url, { cache: "no-cache" })
+      ).text();
+
+      if (!filterText) {
+        return null;
+      }
+
+      console.log("filterText: ", filterText);
+      console.log("hash bytes: ", await hashSha256(filterText));
+      console.log("hash", bytesToHexString(await hashSha256(filterText)));
+      if (bytesToHexString(await hashSha256(filterText)) !== filterState.hash) {
+        console.error("filter hash mismatch");
+        // setFilterState((prev) => {
+        //   return { ...prev, filter: null };
+        // });
+      }
+      const filter = JSON.parse(filterText);
+      console.log("filter:", filter);
+      setFilterState((prev) => {
+        return { ...prev, filter };
+      });
+    })();
+  }, [filterState.hash, filterState.url, getFilterAccount.data?.value]);
+
+  const stageWhitelistFilter = useMemo(() => {
+    const whitelistFilter = {
+      items: {},
+    };
+    if (filterState.filter) {
+      filterState.filter.stage
+        .filter((item) => item.startsWith("a,"))
+        .map((item) => item.split(",")[1])
+        .forEach((item) => {
+          whitelistFilter.items[item] = true;
+        });
+    }
+    console.log("whitelistFilter:", whitelistFilter);
+    return whitelistFilter;
+  }, [filterState.filter]);
+
+  const backstageWhitelistFilter = useMemo(() => {
+    const whitelistFilter = {
+      items: {},
+    };
+    if (filterState.filter) {
+      filterState.filter.backstage
+        .filter((item) => item.startsWith("a,"))
+        .map((item) => item.split(",")[1])
+        .forEach((item) => {
+          whitelistFilter.items[item] = true;
+        });
+    }
+    console.log("whitelistFilter:", whitelistFilter);
+    return whitelistFilter;
+  }, [filterState.filter]);
 
   const stageItems = useMemo(() => {
+    const result =
+      query.data?.filter((item) => {
+        return item?.group && stageWhitelistFilter.items[item.address];
+      }) ?? [];
+    if (showAll) return result;
+    return result.slice(0, 5);
+  }, [query.data, showAll, stageWhitelistFilter.items]);
+
+  const backstageItems = useMemo(() => {
     // console.log(query.data);
     const result =
       query.data?.filter((item) => {
         if ((item.group ?? "")?.startsWith("2i")) {
           console.log(item.group);
         }
-        return item?.group && whitelistFilter.collections[item.group];
+        return item?.group && backstageWhitelistFilter.items[item.address];
       }) ?? [];
     if (showAll) return result;
     return result.slice(0, 5);
-  }, [query.data, showAll, whitelistFilter.collections]);
+  }, [query.data, showAll, backstageWhitelistFilter.items]);
 
   const junkBoxItems = useMemo(() => {
     const result =
       query.data?.filter(
-        (item) => item?.group && !whitelistFilter.collections[item.group]
+        (item) =>
+          item?.group &&
+          !stageWhitelistFilter.items[item.address] &&
+          !backstageWhitelistFilter.items[item.address]
       ) ?? [];
     if (showAll) return result;
     return result.slice(0, 5);
-  }, [query.data, showAll, whitelistFilter.collections]);
+  }, [
+    backstageWhitelistFilter.items,
+    query.data,
+    showAll,
+    stageWhitelistFilter.items,
+  ]);
+
+  /**
+   * handler to upload and update filter, will pass to NftsDisplay items to call
+   */
+  const moveItemHandler = useCallback(
+    async (item: NFTAssetResultData, from: string, to: string) => {
+      console.log(moveItemHandler);
+      if (needInit) {
+        toast.error("Need to initialize filter account first!");
+        return;
+      }
+      console.log("moveItemHandler", item, from, to);
+      if (!filterState.url) {
+        return;
+      }
+      if (filterState.url !== "" && filterState.filter === null) {
+        return;
+      }
+      const updateFIlter = moveItemGetUpdateFilter(
+        item,
+        from,
+        to,
+        filterState.filter ?? { stage: [], backstage: [], loadFilters: [] }
+      );
+
+      const filterContent = JSON.stringify(updateFIlter);
+
+      const hash = await hashSha256(filterContent);
+
+      // setFilter.mutateAsync({ url: filterState.url, hash });
+      uploadFilter(filterContent);
+    },
+    [filterState.filter, filterState.url, uploadFilter]
+  );
 
   const stageDisplay = useMemo(() => {
     if (query.isSuccess) {
@@ -318,7 +610,11 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
             <div>No Stage NFTs found.</div>
           ) : (
             <div>
-              <NftsDisplay items={stageItems} />
+              <NftsDisplay
+                items={stageItems}
+                currentType="stage"
+                moveItemHandler={moveItemHandler}
+              />
             </div>
           )}
         </div>
@@ -326,17 +622,44 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     } else {
       return null;
     }
-  }, [query.isSuccess, stageItems]);
+  }, [moveItemHandler, query.isSuccess, stageItems]);
+
+  const backstageDisplay = useMemo(() => {
+    if (query.isSuccess) {
+      return (
+        <div>
+          {backstageItems.length === 0 ? (
+            <div>No Stage NFTs found.</div>
+          ) : (
+            <div>
+              <NftsDisplay
+                items={backstageItems}
+                currentType="backstage"
+                moveItemHandler={moveItemHandler}
+              />
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      return null;
+    }
+  }, [query.isSuccess, backstageItems, moveItemHandler]);
 
   const junkboxDisplay = useMemo(() => {
     if (query.isSuccess) {
       return (
         <div>
-          {stageItems.length === 0 ? (
+          {junkBoxItems.length === 0 ? (
             <div>No Junk NFTs found.</div>
           ) : (
             <div>
-              <NftsDisplay items={junkBoxItems} showImage={false} />
+              <NftsDisplay
+                items={junkBoxItems}
+                defaultShowImage={false}
+                currentType="junkbox"
+                moveItemHandler={moveItemHandler}
+              />
             </div>
           )}
         </div>
@@ -344,7 +667,11 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     } else {
       return null;
     }
-  }, [junkBoxItems, query.isSuccess, stageItems.length]);
+  }, [junkBoxItems, moveItemHandler, query.isSuccess, stageItems.length]);
+
+  if (query.isLoading) {
+    return <span className="loading loading-spinner loading-lg"></span>;
+  }
 
   return (
     <>
@@ -399,17 +726,17 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
                   </>
                 ),
                 key: "backstage",
-                children: <>Up coming!</>,
+                children: backstageDisplay,
               },
-              {
-                label: (
-                  <>
-                    <GiftOutlined /> GIFT
-                  </>
-                ),
-                key: "gift",
-                children: <>Up coming!</>,
-              },
+              // {
+              //   label: (
+              //     <>
+              //       <GiftOutlined /> GIFT
+              //     </>
+              //   ),
+              //   key: "gift",
+              //   children: <>Up coming!</>,
+              // },
               {
                 label: (
                   <>
@@ -740,4 +1067,44 @@ function ModalSend({
       />
     </AppModal>
   );
+}
+
+function moveItemGetUpdateFilter(
+  item: NFTAssetResultData,
+  from: string,
+  to: string,
+  filter: Filter
+): Filter {
+  const itemAddressKey = "a," + item.address;
+  const draftFilter: Filter = JSON.parse(JSON.stringify(filter));
+  if (to === "junkbox") {
+    if (from === "stage") {
+      draftFilter.stage = draftFilter.stage.filter(
+        (item) => item !== itemAddressKey
+      );
+    } else if (from === "backstage") {
+      draftFilter.backstage = draftFilter.backstage.filter(
+        (item) => item !== itemAddressKey
+      );
+    }
+  } else if (to === "stage") {
+    if (!draftFilter.stage.find((item) => item === itemAddressKey)) {
+      draftFilter.stage.push(itemAddressKey);
+    }
+    if (from === "backstage") {
+      draftFilter.backstage = draftFilter.backstage.filter(
+        (item) => item !== itemAddressKey
+      );
+    }
+  } else if (to === "backstage") {
+    if (!draftFilter.backstage.find((item) => item === itemAddressKey)) {
+      draftFilter.backstage.push(itemAddressKey);
+    }
+    if (from === "stage") {
+      draftFilter.stage = draftFilter.stage.filter(
+        (item) => item !== itemAddressKey
+      );
+    }
+  }
+  return draftFilter;
 }

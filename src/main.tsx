@@ -1,8 +1,8 @@
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { HashRouter } from "react-router-dom";
-import { App } from "./app/app.tsx";
 import "./style.css";
+import { App } from "./app/app.tsx";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement

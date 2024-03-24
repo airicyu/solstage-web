@@ -1,8 +1,8 @@
-import { clusterApiUrl, Connection } from '@solana/web3.js';
-import { atom, useAtomValue, useSetAtom } from 'jotai';
-import { atomWithStorage } from 'jotai/utils';
-import { createContext, ReactNode, useContext } from 'react';
-import toast from 'react-hot-toast';
+import { clusterApiUrl, Connection } from "@solana/web3.js";
+import { atom, useAtomValue, useSetAtom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
+import { createContext, ReactNode, useContext } from "react";
+import toast from "react-hot-toast";
 
 export interface Cluster {
   name: string;
@@ -12,35 +12,40 @@ export interface Cluster {
 }
 
 export enum ClusterNetwork {
-  Mainnet = 'mainnet-beta',
-  Testnet = 'testnet',
-  Devnet = 'devnet',
-  Custom = 'custom',
+  Mainnet = "mainnet-beta",
+  Testnet = "testnet",
+  Devnet = "devnet",
+  Custom = "custom",
 }
 
 // By default, we don't configure the mainnet-beta cluster
 // The endpoint provided by clusterApiUrl('mainnet-beta') does not allow access from the browser due to CORS restrictions
 // To use the mainnet-beta cluster, provide a custom endpoint
 export const defaultClusters: Cluster[] = [
+  // {
+  //   name: 'devnet',
+  //   endpoint: clusterApiUrl('devnet'),
+  //   network: ClusterNetwork.Devnet,
+  // },
+  // { name: 'local', endpoint: 'http://localhost:8899' },
+  // {
+  //   name: 'testnet',
+  //   endpoint: clusterApiUrl('testnet'),
+  //   network: ClusterNetwork.Testnet,
+  // },
   {
-    name: 'devnet',
-    endpoint: clusterApiUrl('devnet'),
-    network: ClusterNetwork.Devnet,
-  },
-  { name: 'local', endpoint: 'http://localhost:8899' },
-  {
-    name: 'testnet',
-    endpoint: clusterApiUrl('testnet'),
-    network: ClusterNetwork.Testnet,
+    name: "mainnet",
+    endpoint: "https://selene-wzpdk8-fast-mainnet.helius-rpc.com/",
+    network: ClusterNetwork.Mainnet,
   },
 ];
 
 const clusterAtom = atomWithStorage<Cluster>(
-  'solana-cluster',
+  "solana-cluster",
   defaultClusters[0]
 );
 const clustersAtom = atomWithStorage<Cluster[]>(
-  'solana-clusters',
+  "solana-clusters",
   defaultClusters
 );
 
@@ -104,21 +109,21 @@ export function useCluster() {
 }
 
 function getClusterUrlParam(cluster: Cluster): string {
-  let suffix = '';
+  let suffix = "";
   switch (cluster.network) {
     case ClusterNetwork.Devnet:
-      suffix = 'devnet';
+      suffix = "devnet";
       break;
     case ClusterNetwork.Mainnet:
-      suffix = '';
+      suffix = "";
       break;
     case ClusterNetwork.Testnet:
-      suffix = 'testnet';
+      suffix = "testnet";
       break;
     default:
       suffix = `custom&customUrl=${encodeURIComponent(cluster.endpoint)}`;
       break;
   }
 
-  return suffix.length ? `?cluster=${suffix}` : '';
+  return suffix.length ? `?cluster=${suffix}` : "";
 }

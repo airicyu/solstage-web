@@ -1,13 +1,13 @@
-import { useWallet } from '@solana/wallet-adapter-react';
-import { ExplorerLink } from '../cluster/cluster-ui';
-import { WalletButton } from '../solana/solana-provider';
-import { AppHero, ellipsify } from '../ui/ui-layout';
-import { useBasicProgram } from './basic-data-access';
-import { BasicCreate, BasicProgram } from './basic-ui';
+import { useWallet } from "@solana/wallet-adapter-react";
+import { ExplorerLink } from "../cluster/cluster-ui";
+import { WalletButton } from "../solana/solana-provider";
+import { AppHero, ellipsify } from "../ui/ui-layout";
+import { useProgram } from "./program-data-access";
+import { ProgramCreate } from "./program-ui";
 
-export default function BasicFeature() {
+export default function ProgramFeature() {
   const { publicKey } = useWallet();
-  const { programId } = useBasicProgram();
+  const { programId } = useProgram();
 
   return publicKey ? (
     <div>
@@ -21,9 +21,8 @@ export default function BasicFeature() {
             label={ellipsify(programId.toString())}
           />
         </p>
-        <BasicCreate />
+        <ProgramCreate />
       </AppHero>
-      <BasicProgram />
     </div>
   ) : (
     <div className="max-w-4xl mx-auto">

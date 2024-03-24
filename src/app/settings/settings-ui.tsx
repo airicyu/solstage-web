@@ -1,10 +1,9 @@
 import { useCallback } from "react";
 import { Input, Typography } from "antd";
-import { useSettings } from "./settings-utils";
+import { useSettings } from "./settings-data-access";
 
 export const SettingsPage = () => {
-  const { birdEyeApiKey, setBirdEyeApiKey, heliusApiKey, setHeliusApiKey } =
-    useSettings();
+  const { heliusRpcEndpoint, setHeliusRpcEndpoint } = useSettings();
 
   const onChangeInput = useCallback(
     (
@@ -24,25 +23,13 @@ export const SettingsPage = () => {
         style={{ width: 1200 }}
       >
         <div className="py-3">
-          <Typography.Title level={5}>Helius API key</Typography.Title>
+          <Typography.Title level={5}>Helius RPC endpoint</Typography.Title>
 
           <Input
             style={{ width: 400 }}
-            defaultValue={heliusApiKey ?? ""}
+            defaultValue={heliusRpcEndpoint ?? ""}
             onChange={(e) => {
-              onChangeInput(e, setHeliusApiKey);
-            }}
-          />
-        </div>
-
-        <div className="py-3">
-          <Typography.Title level={5}>Birdeye API key</Typography.Title>
-
-          <Input
-            style={{ width: 400 }}
-            defaultValue={birdEyeApiKey ?? ""}
-            onChange={(e) => {
-              onChangeInput(e, setBirdEyeApiKey);
+              onChangeInput(e, setHeliusRpcEndpoint);
             }}
           />
         </div>

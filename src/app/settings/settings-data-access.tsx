@@ -1,12 +1,10 @@
 import { useAtom } from "jotai";
-import { ReactNode, createContext } from "react";
-import { birdEyeApiKeyAtom, heliusApiKeyAtom } from "../shared/atoms";
+import { ReactNode, createContext, useContext } from "react";
+import { heliusRpcEndpointAtom } from "../shared/atoms";
 
 export interface SettingsContextType {
-  birdEyeApiKey: string | null;
-  setBirdEyeApiKey: (birdEyeApiKey: string | null) => void;
-  heliusApiKey: string | null;
-  setHeliusApiKey: (heliusApiKey: string | null) => void;
+  heliusRpcEndpoint: string | null;
+  setHeliusRpcEndpoint: (heliusRpcEndpoint: string | null) => void;
 }
 
 export const SettingsContext = createContext<SettingsContextType>(
@@ -14,14 +12,11 @@ export const SettingsContext = createContext<SettingsContextType>(
 );
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [birdEyeApiKey, setBirdEyeApiKey] = useAtom(birdEyeApiKeyAtom);
-  const [heliusApiKey, setHeliusApiKey] = useAtom(heliusApiKeyAtom);
+  const [heliusApiKey, setHeliusRpcEndpoint] = useAtom(heliusRpcEndpointAtom);
 
   const value: SettingsContextType = {
-    birdEyeApiKey,
-    setBirdEyeApiKey,
-    heliusApiKey,
-    setHeliusApiKey,
+    heliusRpcEndpoint: heliusApiKey,
+    setHeliusRpcEndpoint,
   };
 
   return (
@@ -29,4 +24,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       {children}
     </SettingsContext.Provider>
   );
+}
+
+export function useSettings() {
+  return useContext(SettingsContext);
 }

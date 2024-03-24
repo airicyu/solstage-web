@@ -12,7 +12,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useTransactionToast } from "../ui/ui-layout";
-import { heliusApiEndpointUrlAtom } from "../shared/atoms";
+import { heliusRpcEndpointUrlAtom } from "../shared/atoms";
 import { useAtomValue } from "jotai";
 import { queryOwnerNft } from "./nft-query/solflare-nft-query";
 
@@ -37,7 +37,7 @@ export function useGetSignatures({ address }: { address: PublicKey }) {
 export function useGetWalletNfts({ address }: { address: PublicKey }) {
   // const { connection } = useConnection();
   // const metaplex = new Metaplex(connection);
-  const heliusApiEndpointUrl = useAtomValue(heliusApiEndpointUrlAtom);
+  const heliusApiEndpointUrl = useAtomValue(heliusRpcEndpointUrlAtom);
 
   return useQuery({
     queryKey: ["get-wallet-nfts", { endpoint: heliusApiEndpointUrl, address }],

@@ -12,6 +12,7 @@ import {
   AccountTokens,
   AccountTransactions,
 } from "./account-ui";
+import { Toaster } from "react-hot-toast";
 
 export default function AccountDetailFeature() {
   const params = useParams();
@@ -45,15 +46,16 @@ export default function AccountDetailFeature() {
           </div>
         }
       >
-        {/* <div className="my-4">
+        <div className="my-4">
           <AccountButtons address={address} />
-        </div> */}
+        </div>
       </AppHero>
       <div className="space-y-8">
         {/* <AccountTokens address={address} /> */}
         {/* <AccountTransactions address={address} /> */}
         <AccountNFTs address={address} />
       </div>
+      <Toaster position="bottom-right" />
     </div>
   );
 }
