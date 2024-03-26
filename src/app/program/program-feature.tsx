@@ -18,7 +18,7 @@ export default function ProgramFeature() {
         <p className="mb-6">
           <ExplorerLink
             path={`account/${programId}`}
-            label={ellipsify(programId.toString())}
+            label={ellipsify(programId?.toString())}
           />
         </p>
         <ProgramCreate />

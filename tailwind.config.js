@@ -11,7 +11,7 @@ export default {
     },
   },
   plugins: [daisyui],
-  corePlugins: {
-    preflight: false,
-  },
+  // corePlugins: {
+  //   preflight: false,
+  // },
 };

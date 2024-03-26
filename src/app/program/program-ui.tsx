@@ -2,7 +2,7 @@ import { useProgram } from "./program-data-access";
 import { bytesToHexString, hashSha256 } from "../utils/hash";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Input, Tag } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { BN } from "@coral-xyz/anchor";
 
 export function ProgramCreate() {
@@ -17,12 +17,14 @@ export function ProgramCreate() {
   const [inputUrl, setInputUrl] = useState("");
 
   useEffect(() => {
-    if (!getFilterAccount.data?.value) {
+    const filterAccountData = getFilterAccount?.data?.value?.data;
+    if (!filterAccountData) {
       return;
     }
-    const filterHashBytes = Array.from(
-      getFilterAccount.data.value.data as Buffer
-    ).slice(8, 8 + 32);
+    const filterHashBytes = Array.from(filterAccountData as Buffer).slice(
+      8,
+      8 + 32
+    );
 
     const filterHash = bytesToHexString(filterHashBytes);
     if (!filterHash) {
@@ -30,10 +32,7 @@ export function ProgramCreate() {
     }
 
     const urlBytesLenth = new BN(
-      Array.from(getFilterAccount.data.value.data as Buffer).slice(
-        8 + 32,
-        8 + 32 + 4
-      ),
+      Array.from(filterAccountData as Buffer).slice(8 + 32, 8 + 32 + 4),
       "le"
     ).toNumber();
     if (!urlBytesLenth) {
@@ -41,7 +40,7 @@ export function ProgramCreate() {
     }
 
     const filterUrl = Buffer.from(
-      Array.from(getFilterAccount.data.value.data as Buffer).slice(
+      Array.from(filterAccountData as Buffer).slice(
         8 + 32 + 4,
         8 + 32 + 4 + urlBytesLenth
       )
@@ -55,7 +54,7 @@ export function ProgramCreate() {
         url: filterUrl,
       };
     });
-  }, [getFilterAccount.data?.value]);
+  }, [getFilterAccount?.data, getFilterAccount?.data?.value]);
 
   useEffect(() => {
     (async () => {
@@ -88,11 +87,11 @@ export function ProgramCreate() {
               return;
             }
 
-            initialize.mutateAsync();
+            initialize?.mutateAsync();
           }}
-          disabled={initialize.isPending}
+          disabled={!!initialize?.isPending}
         >
-          Run Initialize {initialize.isPending && "..."}
+          Run Initialize {!!initialize?.isPending && "..."}
         </button>
       </div>
 
@@ -155,11 +154,11 @@ export function ProgramCreate() {
                 ).text();
                 const hash = await hashSha256(content);
 
-                setFilter.mutateAsync({ url, hash });
+                setFilter?.mutateAsync({ url, hash });
               }}
-              disabled={setFilter.isPending}
+              disabled={!!setFilter?.isPending}
             >
-              Set filter {setFilter.isPending && "..."}
+              Set filter {!!setFilter?.isPending && "..."}
             </button>
           </div>
         </div>

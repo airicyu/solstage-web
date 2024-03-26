@@ -14,22 +14,18 @@ import {
   useRequestAirdrop,
   useTransferSol,
 } from "./account-data-access";
-import account from "@coral-xyz/anchor/dist/cjs/program/namespace/account";
 import { NFTAssetResultData } from "./nft-query/asset-result-data";
 import {
   AppstoreOutlined,
-  GiftOutlined,
   SketchOutlined,
   StopOutlined,
 } from "@ant-design/icons";
 import { useProgram } from "../program/program-data-access";
 import { bytesToHexString, hashSha256 } from "../utils/hash";
 import { BN } from "bn.js";
-import { uploadFilter, useUploadFilter } from "../filter/upload-filter";
-import { ShadowFile } from "@shadow-drive/sdk";
-import { Blob } from "buffer";
 import toast from "react-hot-toast";
 import { Button, Card, Flex, Tabs, Tooltip } from "antd";
+import { useUploadFilter } from "../filter/upload-filter";
 
 export function AccountBalance({ address }: { address: PublicKey }) {
   const query = useGetBalance({ address });
@@ -83,19 +79,21 @@ export function AccountBalanceCheck({ address }: { address: PublicKey }) {
 
 export function AccountButtons({ address }: { address: PublicKey }) {
   const wallet = useWallet();
-  const { cluster } = useCluster();
+  // const { cluster } = useCluster();
   const [showAirdropModal, setShowAirdropModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const { initialize, getFilterAccount } = useProgram();
-  const { storageAcc, initAccount } = useUploadFilter();
+  const { storageAcc, hasStoageAccount, initAccount } = useUploadFilter();
+  // const { connection } = useConnection();
+  const [isLoadingInit, setIsLoadingInit] = useState(false);
 
   const needInit = useMemo(() => {
-    if (getFilterAccount.isLoading) {
+    if (getFilterAccount?.isLoading) {
       return false;
     }
-    return !getFilterAccount.data?.value || storageAcc === null;
-  }, [getFilterAccount.data?.value, getFilterAccount.isLoading, storageAcc]);
+    return !getFilterAccount?.data?.value || storageAcc === undefined;
+  }, [getFilterAccount?.data?.value, getFilterAccount?.isLoading, storageAcc]);
 
   return (
     <div>
@@ -117,20 +115,56 @@ export function AccountButtons({ address }: { address: PublicKey }) {
       <div className="space-x-2">
         {needInit && (
           <Button
-            type="primary"
+            className="btn btn-xs lg:btn-md btn-outline"
+            type="default"
             onClick={async () => {
-              if (getFilterAccount.isLoading) {
+              if (!wallet.publicKey) {
+                toast.error(
+                  "Wallet not connected! Please connect wallet first."
+                );
                 return;
               }
-              if (storageAcc === null) {
-                await initAccount();
+              if (getFilterAccount?.isLoading) {
+                toast.error(
+                  "Filter account is loading! Please wait some seconds and try again."
+                );
+                return;
               }
+              setIsLoadingInit(true);
+              try {
+                if (hasStoageAccount === undefined) {
+                  toast.error(
+                    "Storage account is loading! Please wait some seconds and try again."
+                  );
+                  return;
+                }
+                console.log("storageAcc", hasStoageAccount, storageAcc);
+                if (hasStoageAccount === false) {
+                  await initAccount();
+                }
 
-              if (!getFilterAccount.data?.value) {
-                console.log("need inital filter account");
+                if (!getFilterAccount?.data?.value) {
+                  console.log("need inital filter account");
+                }
+                const loadingToastHandler = toast.loading(
+                  "Initializing account on chain..."
+                );
+                try {
+                  await initialize?.mutateAsync();
+                } catch (e) {
+                  console.error(e);
+                  toast.error("Failed to initialize account on chain");
+                } finally {
+                  toast.dismiss(loadingToastHandler);
+                }
+              } catch (e) {
+                console.error(e);
+                toast.error("Failed to initialize account");
+              } finally {
+                setIsLoadingInit(false);
               }
-              await initialize.mutateAsync();
             }}
+            loading={isLoadingInit}
           >
             Initialize Account
           </Button>
@@ -241,7 +275,7 @@ export function NftCard({
       <>
         {currentType !== "stage" && (
           <Button
-            onClick={(e) => {
+            onClick={() => {
               moveItemHandler(item, currentType, "stage");
             }}
           >
@@ -250,7 +284,7 @@ export function NftCard({
         )}
         {currentType !== "backstage" && (
           <Button
-            onClick={(e) => {
+            onClick={() => {
               moveItemHandler(item, currentType, "backstage");
             }}
           >
@@ -259,7 +293,7 @@ export function NftCard({
         )}
         {currentType !== "junkbox" && (
           <Button
-            onClick={(e) => {
+            onClick={() => {
               moveItemHandler(item, currentType, "junkbox");
             }}
           >
@@ -404,33 +438,35 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     hash: undefined,
     filter: null,
   });
-  const { uploadFilter, refreshFlag, setRefreshFlag } = useUploadFilter();
+  const { uploadFilter, uploadRefreshFlag, setUploadRefreshFlag } =
+    useUploadFilter();
+  const { cluster } = useCluster();
 
   const needInit = useMemo(() => {
-    if (getFilterAccount.isLoading) {
+    if (getFilterAccount?.isLoading) {
       return false;
     }
-    return !getFilterAccount.data?.value || storageAcc === null;
-  }, [getFilterAccount.data?.value, getFilterAccount.isLoading, storageAcc]);
+    return !getFilterAccount?.data?.value || storageAcc === null;
+  }, [getFilterAccount?.data?.value, getFilterAccount?.isLoading, storageAcc]);
 
   /**
    * when re-upload filter, refresh filter account
    */
   useEffect(() => {
-    if (refreshFlag) {
-      setRefreshFlag(false);
+    if (uploadRefreshFlag) {
+      setUploadRefreshFlag(false);
       client.invalidateQueries({
         queryKey: ["get-filter-account", { cluster: "devnet" }],
       });
-      getFilterAccount.refetch();
+      getFilterAccount?.refetch();
     }
-  }, [client, getFilterAccount, refreshFlag, setRefreshFlag]);
+  }, [client, getFilterAccount, setUploadRefreshFlag, uploadRefreshFlag]);
 
   /**
    * load filter url & hash from filter account
    */
   useEffect(() => {
-    if (!getFilterAccount.data?.value) {
+    if (!getFilterAccount?.data?.value) {
       return;
     }
     const filterHash = bytesToHexString(
@@ -441,7 +477,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     }
 
     const urlBytesLenth = new BN(
-      Array.from(getFilterAccount.data.value.data as Buffer).slice(
+      Array.from(getFilterAccount?.data.value.data as Buffer).slice(
         8 + 32,
         8 + 32 + 4
       ),
@@ -452,7 +488,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     }
 
     const filterUrl = Buffer.from(
-      Array.from(getFilterAccount.data.value.data as Buffer).slice(
+      Array.from(getFilterAccount?.data.value.data as Buffer).slice(
         8 + 32 + 4,
         8 + 32 + 4 + urlBytesLenth
       )
@@ -461,7 +497,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     setFilterState((prev) => {
       return { ...prev, hash: filterHash, url: filterUrl };
     });
-  }, [getFilterAccount.data?.value]);
+  }, [getFilterAccount?.data?.value]);
 
   /**
    * check filter hash and update Filter
@@ -495,7 +531,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
         return { ...prev, filter };
       });
     })();
-  }, [filterState.hash, filterState.url, getFilterAccount.data?.value]);
+  }, [filterState.hash, filterState.url, getFilterAccount?.data?.value]);
 
   const stageWhitelistFilter = useMemo(() => {
     const whitelistFilter = {
@@ -579,12 +615,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
         return;
       }
       console.log("moveItemHandler", item, from, to);
-      if (!filterState.url) {
-        return;
-      }
-      if (filterState.url !== "" && filterState.filter === null) {
-        return;
-      }
+      console.log("filterState.filter", filterState.filter);
       const updateFIlter = moveItemGetUpdateFilter(
         item,
         from,
@@ -596,10 +627,31 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
 
       const hash = await hashSha256(filterContent);
 
-      // setFilter.mutateAsync({ url: filterState.url, hash });
-      uploadFilter(filterContent);
+      const loadingToastHandler = toast.loading("Updating filter...");
+      try {
+        const uploadUrl = await uploadFilter(filterContent);
+        if (uploadUrl && !filterState.url) {
+          await setFilter?.mutateAsync({ url: uploadUrl, hash });
+          await client.invalidateQueries({
+            queryKey: ["get-filter-account", { cluster }],
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        toast.error("Failed to update filter");
+      } finally {
+        toast.dismiss(loadingToastHandler);
+      }
     },
-    [filterState.filter, filterState.url, uploadFilter]
+    [
+      client,
+      cluster,
+      filterState.filter,
+      filterState.url,
+      needInit,
+      setFilter,
+      uploadFilter,
+    ]
   );
 
   const stageDisplay = useMemo(() => {
@@ -656,7 +708,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
             <div>
               <NftsDisplay
                 items={junkBoxItems}
-                defaultShowImage={false}
+                defaultShowImage={true}
                 currentType="junkbox"
                 moveItemHandler={moveItemHandler}
               />
@@ -667,7 +719,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     } else {
       return null;
     }
-  }, [junkBoxItems, moveItemHandler, query.isSuccess, stageItems.length]);
+  }, [junkBoxItems, moveItemHandler, query.isSuccess]);
 
   if (query.isLoading) {
     return <span className="loading loading-spinner loading-lg"></span>;

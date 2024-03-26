@@ -1,15 +1,49 @@
-import { programId, IDL as BasicIDL } from "./anchor";
+import { programId, IDL as BasicIDL, SolstageProgram } from "./anchor";
 import { Program } from "@coral-xyz/anchor";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  UseMutationResult,
+  UseQueryResult,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useCluster } from "../cluster/cluster-data-access";
 import { useAnchorProvider } from "../solana/solana-provider";
 import { useTransactionToast } from "../ui/ui-layout";
 import { PublicKey } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
+import { createContext, useContext } from "react";
 
-export function useProgram() {
+export type ProgramContextType = {
+  program: Program<SolstageProgram> | null;
+  programId: PublicKey | null;
+  getFilterAccount: UseQueryResult<
+    anchor.web3.RpcResponseAndContext<anchor.web3.AccountInfo<
+      anchor.web3.ParsedAccountData | Buffer
+    > | null> | null,
+    Error
+  > | null;
+  initialize: UseMutationResult<string | null, Error, void, unknown> | null;
+  setFilter: UseMutationResult<
+    string | null,
+    Error,
+    { url: string; hash: number[] },
+    unknown
+  > | null;
+};
+
+export const ProgramContext = createContext<ProgramContextType>({
+  program: null,
+  programId: null,
+  getFilterAccount: null,
+  initialize: null,
+  setFilter: null,
+});
+
+export const useProgram = () => useContext(ProgramContext);
+
+export const ProgramContextProvider = ({ children }) => {
   const { connection } = useConnection();
   const { cluster } = useCluster();
   const transactionToast = useTransactionToast();
@@ -80,11 +114,11 @@ export function useProgram() {
     onError: () => toast.error("Failed to run program"),
   });
 
-  return {
-    program,
-    programId,
-    getFilterAccount,
-    initialize,
-    setFilter,
-  };
-}
+  return (
+    <ProgramContext.Provider
+      value={{ program, programId, getFilterAccount, initialize, setFilter }}
+    >
+      {children}
+    </ProgramContext.Provider>
+  );
+};

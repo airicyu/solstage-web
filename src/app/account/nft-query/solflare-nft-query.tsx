@@ -21,8 +21,8 @@ export async function queryOwnerNft(
   });
   const sourceNftModels = (queryResponse as QueryResponse).nfts;
 
-  const nftModels: NFTAssetResultData[] = await Promise.all(
-    sourceNftModels.map(async (nft) => {
+  const nftModels: NFTAssetResultData[] = sourceNftModels
+    .map((nft) => {
       return {
         address: nft.id,
         name: nft.name,
@@ -35,7 +35,7 @@ export async function queryOwnerNft(
         attributes: nft.attributes,
       };
     })
-  );
+    .filter((nft) => nft.group !== "scam");
 
   localStorage.setItem(
     "solflare-portfolio-nft-api-result-cache",

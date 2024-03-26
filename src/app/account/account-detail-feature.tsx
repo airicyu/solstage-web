@@ -5,14 +5,7 @@ import { useParams } from "react-router-dom";
 
 import { ExplorerLink } from "../cluster/cluster-ui";
 import { AppHero, ellipsify } from "../ui/ui-layout";
-import {
-  AccountBalance,
-  AccountButtons,
-  AccountNFTs,
-  AccountTokens,
-  AccountTransactions,
-} from "./account-ui";
-import { Toaster } from "react-hot-toast";
+import { AccountButtons, AccountNFTs } from "./account-ui";
 
 export default function AccountDetailFeature() {
   const params = useParams();
@@ -55,7 +48,6 @@ export default function AccountDetailFeature() {
         {/* <AccountTransactions address={address} /> */}
         <AccountNFTs address={address} />
       </div>
-      <Toaster position="bottom-right" />
     </div>
   );
 }

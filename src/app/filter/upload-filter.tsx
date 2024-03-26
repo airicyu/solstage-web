@@ -1,125 +1,383 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ShadowFile, ShdwDrive, StorageAccountV2 } from "@shadow-drive/sdk";
-import { useWallet, useConnection, Wallet } from "@solana/wallet-adapter-react";
-import FormData from "form-data";
-import { Connection, PublicKey } from "@solana/web3.js";
-import { Button } from "antd";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { ShdwDrive, StorageAccountV2 } from "@shadow-drive/sdk";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
+import { getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { swapSolForShdw } from "../swap/swap-shdw";
+import toast from "react-hot-toast";
 
-export function useUploadFilter() {
+export type UploadFilterContextType = {
+  hasStoageAccount: boolean | undefined;
+  storageAcc: PublicKey | undefined;
+  uploadUrl: string | undefined;
+  initAccount: () => Promise<void>;
+  uploadFilter: (filterContent: string) => Promise<string | null>;
+  uploadRefreshFlag: boolean;
+  setUploadRefreshFlag: (flag: boolean) => void;
+};
+
+export const UploadFilterContext = createContext<UploadFilterContextType>({
+  hasStoageAccount: undefined,
+  storageAcc: undefined,
+  uploadUrl: undefined,
+  initAccount: async () => {},
+  uploadFilter: async () => {
+    return null;
+  },
+  uploadRefreshFlag: false,
+  setUploadRefreshFlag: async () => {},
+} as UploadFilterContextType);
+
+export const useUploadFilter = () => useContext(UploadFilterContext);
+
+type UploadFilterContextState = {
+  drive?: ShdwDrive;
+  hasStoageAccount?: boolean;
+  storageAcc?: PublicKey;
+  uploadUrl?: string;
+};
+
+export const UploadFilterContextProvider = ({ children }) => {
   const { connection } = useConnection();
   const wallet = useWallet();
-  const [uploadUrl, setUploadUrl] = useState<string | undefined>();
   const [refreshFlag, setRefreshFlag] = useState<boolean>(false);
-  const [drive, setDrive] = useState<ShdwDrive | undefined>();
-  const [storageAcc, setStorageAcc] = useState<PublicKey | null | undefined>(
-    undefined
+  const [contextState, setContextState] = useState<UploadFilterContextState>(
+    {}
   );
+  // const [drive, setDrive] = useState<ShdwDrive | undefined>();
+  // const [storageAcc, setStorageAcc] = useState<PublicKey | undefined>(
+  //   undefined
+  // );
 
   /**
    * load "drive"
    */
   useEffect(() => {
-    new ShdwDrive(connection, wallet).init().then(setDrive);
-  }, [connection, wallet]);
-
-  /**
-   * load file storage account
-   */
-  useEffect(() => {
-    (async () => {
-      if (!drive) {
-        console.debug("!drive");
-        return null;
-      }
-      const accounts: {
-        publicKey: PublicKey;
-        account: StorageAccountV2;
-      }[] = await drive.getStorageAccounts();
+    new ShdwDrive(connection, wallet).init().then(async (drive) => {
       try {
+        const accounts: {
+          publicKey: PublicKey;
+          account: StorageAccountV2;
+        }[] = await drive.getStorageAccounts();
+
+        console.log("shdw accounts", accounts);
         const acc = accounts.find(
           (acc) => acc.account.identifier === "solstage"
         )?.publicKey;
-        console.debug("setStorageAcc(acc);");
-        setStorageAcc(acc);
+        console.log("setStorageAcc(acc);");
+        setContextState((state) => ({
+          ...state,
+          drive,
+          hasStoageAccount: true,
+          storageAcc: acc,
+        }));
+        toast.success("Storage account loaded.");
       } catch (e) {
-        console.debug("setStorageAcc(null);");
-        setStorageAcc(null);
+        console.log("setStorageAcc(undefined);");
+        setContextState((state) => ({
+          ...state,
+          drive,
+          hasStoageAccount: false,
+          storageAcc: undefined,
+        }));
+        toast.success("Storage account is not found!");
       }
-    })();
-  }, [drive]);
+    });
+  }, [connection, wallet]);
 
-  // // check storage account exists
-  // const checkAccountExists = useCallback(() => {
-  //   return !!storageAcc;
-  // }, [storageAcc]);
+  const checkToSwapSolForShdw = useCallback(
+    async (wallet) => {
+      const ata = getAssociatedTokenAddressSync(
+        new PublicKey("SHDWyBxihqiCj6YekG2GUr7wqKLeLAMK1gHZck9pL6y"),
+        wallet.publicKey
+      );
+      console.log("ata", ata?.toString());
+      const ataAccountInfo = await connection.getAccountInfo(ata);
+
+      console.log("ata account info", ataAccountInfo);
+      if (!ataAccountInfo) {
+        const loadingToastHandler = toast(
+          "No SHDW account found, swapping SOL for some SHDW for account bootstrap."
+        );
+        try {
+          await swapSolForShdw(wallet, connection, 0.1);
+          toast.success("Swap SOL for SHDW transaction succeeded!");
+        } catch (e) {
+          toast.error(
+            "Swap SOL for SHDW transaction failed! Please try again."
+          );
+          throw e;
+        } finally {
+          toast.dismiss(loadingToastHandler);
+        }
+      }
+
+      const info = await connection.getTokenAccountBalance(ata);
+      console.log("shdw balance", info.value.uiAmount);
+      if (info.value.uiAmount != null && info.value.uiAmount < 0.05) {
+        const loadingToastHandler = toast(
+          "Swapping SOL for some SHDW for account bootstrap."
+        );
+        try {
+          await swapSolForShdw(wallet, connection, 0.1);
+          toast.success("Swap SOL for SHDW transaction succeeded!");
+        } catch (e) {
+          toast.error(
+            "Swap SOL for SHDW transaction failed! Please try again."
+          );
+          throw e;
+        } finally {
+          toast.dismiss(loadingToastHandler);
+        }
+      }
+      console.log("shdw balance is enough");
+    },
+    [connection]
+  );
 
   /**
    * init storage account
    */
   const initAccount = useCallback(async () => {
-    if (!drive) return null;
-    const { shdw_bucket, transaction_signature } =
-      await drive.createStorageAccount("solstage", "100KB");
-    console.log(`shdw_bucket: ${shdw_bucket}`);
-    console.log(`transaction_signature: ${transaction_signature}`);
-  }, [drive]);
+    const loadingToastHandler = toast.loading("Creating storage account...");
+    try {
+      if (!contextState.drive) {
+        return;
+      }
+      await checkToSwapSolForShdw(wallet);
+
+      const { shdw_bucket, transaction_signature } =
+        await contextState.drive.createStorageAccount("solstage", "100KB");
+      console.log(`shdw_bucket: ${shdw_bucket}`);
+      console.log(`transaction_signature: ${transaction_signature}`);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to create storage account");
+    } finally {
+      toast.dismiss(loadingToastHandler);
+    }
+  }, [checkToSwapSolForShdw, contextState.drive, wallet]);
 
   /**
    * upload/edit filter file to shadow drive
    */
   const uploadFilter = useCallback(
-    (filterContent: string) => {
-      (async () => {
-        if (!drive) {
-          throw new Error("Drive not initialized");
-        }
+    async (filterContent: string): Promise<string | null> => {
+      if (!contextState.drive) {
+        throw new Error("Drive not initialized");
+      }
 
-        if (!storageAcc) {
-          await initAccount();
-        }
+      if (!contextState.hasStoageAccount) {
+        await initAccount();
+      }
 
-        if (!storageAcc) {
-          throw new Error("No account found");
-        }
+      if (!contextState.storageAcc) {
+        throw new Error("No account found");
+      }
 
-        const filterFile = new File([filterContent], "default-filter.json", {
-          type: "application/json",
-        });
+      const filterFile = new File([filterContent], "default-filter.json", {
+        type: "application/json",
+      });
 
-        const getStorageAccount = await drive.getStorageAccount(storageAcc);
-        console.log(`getStorageAccount:`, getStorageAccount);
+      const getStorageAccount = await contextState.drive.getStorageAccount(
+        contextState.storageAcc
+      );
+      console.log(`getStorageAccount:`, getStorageAccount);
 
-        const fileKeys = await drive.listObjects(storageAcc);
-        if (!fileKeys.keys.includes("default-filter.json")) {
+      const fileKeys = await contextState.drive.listObjects(
+        contextState.storageAcc
+      );
+
+      if (!fileKeys.keys.includes("default-filter.json")) {
+        const loadingToastHandler = toast(
+          "Uploading filter file to storage account..."
+        );
+        try {
           console.log("new file upload");
-          const upload = await drive.uploadFile(storageAcc, filterFile);
-          console.log(`upload:`, upload);
-          setUploadUrl(upload.finalized_locations[0]);
-          setRefreshFlag(true);
-        } else {
-          console.log("edit file upload");
-          const { finalized_location } = await drive.editFile(
-            storageAcc,
-            `https://shdw-drive.genesysgo.net/${storageAcc.toString()}/default-filter.json`,
+          const upload = await contextState.drive.uploadFile(
+            contextState.storageAcc,
             filterFile
           );
-          console.log(`finalized_location: `, finalized_location);
-          setUploadUrl(finalized_location);
+          console.log(`upload:`, upload);
+          setContextState((state) => ({
+            ...state,
+            uploadUrl: upload.finalized_locations[0],
+          }));
           setRefreshFlag(true);
+          return upload.finalized_locations[0]!;
+        } catch (e) {
+          toast.error("Failed to upload filter file");
+        } finally {
+          toast.dismiss(loadingToastHandler);
         }
-      })();
+      } else {
+        console.log("edit file upload");
+        const { finalized_location } = await contextState.drive.editFile(
+          contextState.storageAcc,
+          `https://shdw-drive.genesysgo.net/${contextState.storageAcc.toString()}/default-filter.json`,
+          filterFile
+        );
+        console.log(`finalized_location: `, finalized_location);
+        setContextState((state) => ({
+          ...state,
+          uploadUrl: finalized_location,
+        }));
+        setRefreshFlag(true);
+        return finalized_location;
+      }
+
+      return null;
     },
-    [drive, initAccount, storageAcc]
+    [
+      contextState.drive,
+      contextState.hasStoageAccount,
+      contextState.storageAcc,
+      initAccount,
+    ]
   );
 
-  return {
-    storageAcc,
-    initAccount,
-    uploadFilter,
-    refreshFlag,
-    setRefreshFlag,
-  };
-}
+  return (
+    <UploadFilterContext.Provider
+      value={{
+        hasStoageAccount: contextState.hasStoageAccount,
+        storageAcc: contextState.storageAcc,
+        uploadUrl: contextState.uploadUrl,
+        initAccount,
+        uploadFilter,
+        uploadRefreshFlag: refreshFlag,
+        setUploadRefreshFlag: setRefreshFlag,
+      }}
+    >
+      {children}
+    </UploadFilterContext.Provider>
+  );
+};
+
+// export function useUploadFilter() {
+//   const { connection } = useConnection();
+//   const wallet = useWallet();
+//   const [uploadUrl, setUploadUrl] = useState<string | undefined>();
+//   const [refreshFlag, setRefreshFlag] = useState<boolean>(false);
+//   const [drive, setDrive] = useState<ShdwDrive | undefined>();
+//   const [storageAcc, setStorageAcc] = useState<PublicKey | null | undefined>(
+//     undefined
+//   );
+
+//   /**
+//    * load "drive"
+//    */
+//   useEffect(() => {
+//     console.log("new ShdwDrive");
+//     new ShdwDrive(connection, wallet).init().then((drive) => {
+//       setDrive(drive);
+//     });
+//   }, [connection, wallet]);
+
+//   /**
+//    * load file storage account
+//    */
+//   useEffect(() => {
+//     (async () => {
+//       console.debug("drive", drive);
+//       if (!drive) {
+//         console.debug("!drive");
+//         return;
+//       }
+//       const accounts: {
+//         publicKey: PublicKey;
+//         account: StorageAccountV2;
+//       }[] = await drive.getStorageAccounts();
+//       try {
+//         const acc = accounts.find(
+//           (acc) => acc.account.identifier === "solstage"
+//         )?.publicKey;
+//         console.debug("setStorageAcc(acc);");
+//         setStorageAcc(acc);
+//       } catch (e) {
+//         console.debug("setStorageAcc(null);");
+//         setStorageAcc(null);
+//       }
+//     })();
+//   }, [drive]);
+
+//   // // check storage account exists
+//   // const checkAccountExists = useCallback(() => {
+//   //   return !!storageAcc;
+//   // }, [storageAcc]);
+
+//   /**
+//    * init storage account
+//    */
+//   const initAccount = useCallback(async () => {
+//     if (!drive) return null;
+//     const { shdw_bucket, transaction_signature } =
+//       await drive.createStorageAccount("solstage", "100KB");
+//     console.log(`shdw_bucket: ${shdw_bucket}`);
+//     console.log(`transaction_signature: ${transaction_signature}`);
+//   }, [drive]);
+
+//   /**
+//    * upload/edit filter file to shadow drive
+//    */
+//   const uploadFilter = useCallback(
+//     (filterContent: string) => {
+//       (async () => {
+//         if (!drive) {
+//           throw new Error("Drive not initialized");
+//         }
+
+//         if (!storageAcc) {
+//           await initAccount();
+//         }
+
+//         if (!storageAcc) {
+//           throw new Error("No account found");
+//         }
+
+//         const filterFile = new File([filterContent], "default-filter.json", {
+//           type: "application/json",
+//         });
+
+//         const getStorageAccount = await drive.getStorageAccount(storageAcc);
+//         console.log(`getStorageAccount:`, getStorageAccount);
+
+//         const fileKeys = await drive.listObjects(storageAcc);
+//         if (!fileKeys.keys.includes("default-filter.json")) {
+//           console.log("new file upload");
+//           const upload = await drive.uploadFile(storageAcc, filterFile);
+//           console.log(`upload:`, upload);
+//           setUploadUrl(upload.finalized_locations[0]);
+//           setRefreshFlag(true);
+//         } else {
+//           console.log("edit file upload");
+//           const { finalized_location } = await drive.editFile(
+//             storageAcc,
+//             `https://shdw-drive.genesysgo.net/${storageAcc.toString()}/default-filter.json`,
+//             filterFile
+//           );
+//           console.log(`finalized_location: `, finalized_location);
+//           setUploadUrl(finalized_location);
+//           setRefreshFlag(true);
+//         }
+//       })();
+//     },
+//     [drive, initAccount, storageAcc]
+//   );
+
+//   return {
+//     storageAcc,
+//     initAccount,
+//     uploadFilter,
+//     refreshFlag,
+//     setRefreshFlag,
+//   };
+// }
 
 // export async function uploadFilter(
 //   connection: Connection,

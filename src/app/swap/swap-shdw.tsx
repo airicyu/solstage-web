@@ -5,16 +5,15 @@ export async function swapSolForShdw(
   wallet: WalletContextState,
   connection: Connection,
   numShdw: number
-) {
+): Promise<string> {
   if (!wallet.publicKey) {
-    return;
+    throw new Error("Wallet not connected");
   }
-
   const quoteResponse = await (
     await fetch(
       `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=SHDWyBxihqiCj6YekG2GUr7wqKLeLAMK1gHZck9pL6y&amount=${
-        numShdw * 100000000
-      }&slippageBps=1&swapMode=ExactOut`
+        numShdw * 10 ** 9
+      }&slippageBps=10000&swapMode=ExactOut`
     )
   ).json();
 
@@ -39,10 +38,12 @@ export async function swapSolForShdw(
 
   const swapTransactionBuf = Buffer.from(swapTransaction, "base64");
   const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
-  console.log(transaction);
+  // console.log(transaction);
 
-  // sign the transaction
-  const tx = wallet.sendTransaction(transaction, connection);
+  // // sign the transaction
+  const tx = await wallet.sendTransaction(transaction, connection);
+
+  await connection.confirmTransaction(tx, "confirmed");
 
   return tx;
 }

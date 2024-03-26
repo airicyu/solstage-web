@@ -1,5 +1,4 @@
 import { WalletButton } from "../solana/solana-provider";
-import * as React from "react";
 import { ReactNode, Suspense, useEffect, useRef } from "react";
 
 import { Link, useLocation } from "react-router-dom";
@@ -61,7 +60,7 @@ export function UiLayout({
         >
           {children}
         </Suspense>
-        <Toaster position="bottom-right" />
+        <Toaster position="bottom-left" />
       </div>
       {/* <footer className="footer footer-center p-4 bg-base-300 text-base-content">
         <aside>
