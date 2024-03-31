@@ -8,20 +8,10 @@ SHOW your pinned NFTs on STAGE, and let spamming NFTs fall in the JUNKBOX!
 
 - You select what NFTs to show on the `STAGE`! It's your trophy room!
 
-## JUNKBOX
-
-- By default NFTs will fall in `JUNKBOX`. Say Goodbye to spamming cNFTs flooding in your wallet's NFT display!
-
------------
-
-And sth more...
-
 ## BACKSTAGE
 
-- A neutral place to put your NFTs. You select what to put here. And popular NFTs will also auto-fall in here.
+- A place to put your normal NFTs. You select what to put here. And popular NFTs will also auto-fall in here (TODO in the future).
 
-## GIFT
+## JUNKBOX
 
-- People may send you NFTs that listed on `GIFT` tab, with a little tips.
-
-- You may claim `GIFT` NFTs to your `STAGE` / `BACKSTAGE` and collect the tips.
+- By default NFTs will fall in `JUNKBOX`. Say Goodbye to spamming NFTs flooding in your wallet's.
