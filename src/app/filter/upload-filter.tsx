@@ -12,8 +12,6 @@ export type UploadFilterContextType = {
   uploadUrl: string | undefined;
   initAccount: () => Promise<void>;
   uploadFilter: (filterContent: string) => Promise<string | null>;
-  uploadRefreshFlag: boolean;
-  setUploadRefreshFlag: (flag: boolean) => void;
 };
 
 export const UploadFilterContext = createContext<UploadFilterContextType>({
@@ -24,8 +22,6 @@ export const UploadFilterContext = createContext<UploadFilterContextType>({
   uploadFilter: async () => {
     return null;
   },
-  uploadRefreshFlag: false,
-  setUploadRefreshFlag: async () => {},
 } as UploadFilterContextType);
 
 type UploadFilterContextState = {
@@ -35,10 +31,12 @@ type UploadFilterContextState = {
   uploadUrl?: string;
 };
 
+const STORAGE_FILTER_ACC_NAME = "solstage-filter";
+const FILTER_FILE_NAME = "default-filter.json";
+
 export const UploadFilterContextProvider = ({ children }) => {
   const { connection } = useConnection();
   const wallet = useWallet();
-  const [uploadRefreshFlag, setUploadRefreshFlag] = useState<boolean>(false);
   const [contextState, setContextState] = useState<UploadFilterContextState>(
     {}
   );
@@ -60,7 +58,7 @@ export const UploadFilterContextProvider = ({ children }) => {
 
         console.log("shdw accounts", accounts);
         const acc = accounts.find(
-          (acc) => acc.account.identifier === "solstage"
+          (acc) => acc.account.identifier === STORAGE_FILTER_ACC_NAME
         )?.publicKey;
         console.log("setStorageAcc(acc);");
         setContextState((state) => ({
@@ -145,7 +143,10 @@ export const UploadFilterContextProvider = ({ children }) => {
       await checkToSwapSolForShdw(wallet);
 
       const { shdw_bucket, transaction_signature } =
-        await contextState.drive.createStorageAccount("solstage", "100KB");
+        await contextState.drive.createStorageAccount(
+          STORAGE_FILTER_ACC_NAME,
+          "100KB"
+        );
       console.log(`shdw_bucket: ${shdw_bucket}`);
       console.log(`transaction_signature: ${transaction_signature}`);
     } catch (e) {
@@ -173,7 +174,7 @@ export const UploadFilterContextProvider = ({ children }) => {
         throw new Error("No account found");
       }
 
-      const filterFile = new File([filterContent], "default-filter.json", {
+      const filterFile = new File([filterContent], FILTER_FILE_NAME, {
         type: "application/json",
       });
 
@@ -186,7 +187,7 @@ export const UploadFilterContextProvider = ({ children }) => {
         contextState.storageAcc
       );
 
-      if (!fileKeys.keys.includes("default-filter.json")) {
+      if (!fileKeys.keys.includes(FILTER_FILE_NAME)) {
         const loadingToastHandler = toast(
           "Uploading filter file to storage account..."
         );
@@ -201,8 +202,6 @@ export const UploadFilterContextProvider = ({ children }) => {
             ...state,
             uploadUrl: upload.finalized_locations[0],
           }));
-          setUploadRefreshFlag(true);
-          console.log("setRefreshFlag(true)");
           return upload.finalized_locations[0]!;
         } catch (e) {
           toast.error("Failed to upload filter file");
@@ -221,8 +220,6 @@ export const UploadFilterContextProvider = ({ children }) => {
           ...state,
           uploadUrl: finalized_location,
         }));
-        setUploadRefreshFlag(true);
-        console.log("setRefreshFlag(true)");
         return finalized_location;
       }
 
@@ -244,8 +241,6 @@ export const UploadFilterContextProvider = ({ children }) => {
         uploadUrl: contextState.uploadUrl,
         initAccount,
         uploadFilter,
-        uploadRefreshFlag,
-        setUploadRefreshFlag,
       }}
     >
       {children}
