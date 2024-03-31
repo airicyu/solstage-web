@@ -9,32 +9,33 @@ const AccountDetailFeature = lazy(
 // const ClusterFeature = lazy(() => import("./cluster/cluster-feature"));
 const DashboardFeature = lazy(() => import("./dashboard/dashboard-feature"));
 
-const ProgramFeature = lazy(() => import("./program/program-feature"));
+// const ProgramFeature = lazy(() => import("./program/program-feature"));
 const links: { label: string; path: string }[] = [
-  { label: "Account", path: "/account" },
+  { label: "Home", path: "/home" },
+  { label: "Profile", path: "/profile" },
   // { label: "Clusters", path: "/clusters" },
   // { label: "Settings", path: "/settings" },
   // { label: "upload", path: "/upload" },
-  { label: "Program Debug", path: "/program" },
+  // { label: "Program Debug", path: "/program" },
 ];
 
 const routes: RouteObject[] = [
-  { path: "/account/", element: <AccountListFeature /> },
-  { path: "/account/:address", element: <AccountDetailFeature /> },
+  { path: "/profile/", element: <AccountListFeature /> },
+  { path: "/profile/:address", element: <AccountDetailFeature /> },
   // { path: "/clusters", element: <ClusterFeature /> },
   // { path: "/settings", element: <SettingsPage /> },
   // { path: "/upload", element: <Upload /> },
-  { path: "program/*", element: <ProgramFeature /> },
+  // { path: "program/*", element: <ProgramFeature /> },
 ];
 
 export function AppRoutes() {
   return (
     <UiLayout links={links}>
       {useRoutes([
-        { index: true, element: <Navigate to={"/dashboard"} replace={true} /> },
-        { path: "/dashboard", element: <DashboardFeature /> },
+        { index: true, element: <Navigate to={"/home"} replace={true} /> },
+        { path: "/home", element: <DashboardFeature /> },
         ...routes,
-        { path: "*", element: <Navigate to={"/dashboard"} replace={true} /> },
+        { path: "*", element: <Navigate to={"/profile/"} replace={true} /> },
       ])}
     </UiLayout>
   );

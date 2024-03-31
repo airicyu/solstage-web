@@ -28,6 +28,7 @@ export async function queryOwnerNft(
         imageUrl: imageUrl ?? nft.json?.image ?? null,
         fallbackImageUrl: imageUrl ?? nft.json?.image ?? null,
         attributes: [] as Attribute[],
+        floorPrice: null,
       };
     })
   );

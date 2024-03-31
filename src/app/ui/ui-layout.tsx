@@ -3,7 +3,6 @@ import { ReactNode, Suspense, useEffect, useRef } from "react";
 
 import { Link, useLocation } from "react-router-dom";
 
-import { AccountChecker } from "../account/account-ui";
 import {
   ClusterChecker,
   ClusterUiSelect,
@@ -11,7 +10,8 @@ import {
 } from "../cluster/cluster-ui";
 import toast, { Toaster } from "react-hot-toast";
 
-import solanaLogo from "./../../assets/solana-logo.png";
+import logo from "./../../assets/solstage-logo.png";
+import { AccountChecker } from "../account/components/AccountBalance";
 
 export function UiLayout({
   children,
@@ -27,7 +27,7 @@ export function UiLayout({
       <div className="navbar bg-neutral text-neutral-content flex-col md:flex-row space-y-2 md:space-y-0">
         <div className="flex-1">
           <Link className="btn btn-ghost normal-case text-xl" to="/">
-            <img className="h-4 md:h-6" alt="Solana Logo" src={solanaLogo} />
+            <img className="h-4 md:h-12" alt="Logo" src={logo} />
           </Link>
           <ul className="menu menu-horizontal px-1 space-x-2">
             {links.map(({ label, path }) => (
@@ -145,7 +145,7 @@ export function AppHero({
   subtitle: ReactNode;
 }) {
   return (
-    <div className="hero py-[64px]">
+    <div className="hero py-[48px]">
       <div className="hero-content text-center">
         <div className="max-w-2xl">
           {typeof title === "string" ? (

@@ -33,6 +33,13 @@ export async function queryOwnerNft(
         imageUrl: nft.image ?? null,
         fallbackImageUrl: nft.image ?? null,
         attributes: nft.attributes,
+        floorPrice:
+          nft.currencyFloor.price !== null
+            ? {
+                currency: "USD",
+                price: nft.currencyFloor.price,
+              }
+            : null,
       };
     })
     .filter((nft) => nft.group !== "scam");
@@ -66,4 +73,7 @@ type NFTModel = {
   group: string | null;
   groupSingle: string | null;
   groupName: string | null;
+  currencyFloor: {
+    price: number | null;
+  };
 };

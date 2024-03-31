@@ -2,8 +2,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { ExplorerLink } from "../cluster/cluster-ui";
 import { WalletButton } from "../solana/solana-provider";
 import { AppHero, ellipsify } from "../ui/ui-layout";
-import { useProgram } from "./program-data-access";
-import { ProgramCreate } from "./program-ui";
+import { useProgram } from "./program-utils";
 
 export default function ProgramFeature() {
   const { publicKey } = useWallet();
@@ -21,7 +20,6 @@ export default function ProgramFeature() {
             label={ellipsify(programId?.toString())}
           />
         </p>
-        <ProgramCreate />
       </AppHero>
     </div>
   ) : (

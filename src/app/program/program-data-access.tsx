@@ -11,83 +11,239 @@ import toast from "react-hot-toast";
 import { useCluster } from "../cluster/cluster-data-access";
 import { useAnchorProvider } from "../solana/solana-provider";
 import { useTransactionToast } from "../ui/ui-layout";
-import { PublicKey } from "@solana/web3.js";
+import {
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  TransactionInstruction,
+  TransactionMessage,
+  VersionedTransaction,
+} from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
-import { createContext, useContext } from "react";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import base58 from "bs58";
+import {
+  MEMO_PROGRAM_ID,
+  extractMemoPayloadSignature,
+  findFirstValidTx,
+  precheckTxMemo,
+} from "./program-utils";
 
 export type ProgramContextType = {
   program: Program<SolstageProgram> | null;
   programId: PublicKey | null;
-  getFilterAccount: UseQueryResult<
-    anchor.web3.RpcResponseAndContext<anchor.web3.AccountInfo<
-      anchor.web3.ParsedAccountData | Buffer
-    > | null> | null,
+  getFilterInfo: UseQueryResult<
+    {
+      url: string;
+      hash: string;
+    } | null,
     Error
   > | null;
-  initialize: UseMutationResult<string | null, Error, void, unknown> | null;
   setFilter: UseMutationResult<
     string | null,
     Error,
-    { url: string; hash: number[] },
+    { url: string; hash: string },
     unknown
   > | null;
+  address: PublicKey | null;
+  setAddress: ((address: PublicKey) => void) | null;
 };
 
 export const ProgramContext = createContext<ProgramContextType>({
   program: null,
   programId: null,
-  getFilterAccount: null,
-  initialize: null,
+  getFilterInfo: null,
   setFilter: null,
+  address: null,
+  setAddress: null,
 });
 
-export const useProgram = () => useContext(ProgramContext);
-
-export const ProgramContextProvider = ({ children }) => {
+export const ProgramContextProvider = ({ children }: { children: any }) => {
   const { connection } = useConnection();
   const { cluster } = useCluster();
   const transactionToast = useTransactionToast();
   const provider = useAnchorProvider();
   const wallet = useWallet();
   const program = new Program(BasicIDL, programId, provider);
+  const [address, setAddress] = useState<PublicKey | null>(null);
 
-  const [filterSourcePDA] = (wallet.publicKey &&
-    PublicKey.findProgramAddressSync(
-      [
-        anchor.utils.bytes.utf8.encode("filterSource:"),
-        wallet.publicKey.toBuffer(),
-        anchor.utils.bytes.utf8.encode(":default"),
-      ],
-      programId
-    )) ?? [null];
+  const [filterSourcePDA] = useMemo(
+    () =>
+      (address &&
+        PublicKey.findProgramAddressSync(
+          [
+            anchor.utils.bytes.utf8.encode("filterSource:"),
+            address.toBuffer(),
+            anchor.utils.bytes.utf8.encode(":default"),
+          ],
+          programId
+        )) ?? [null],
+    [address]
+  );
 
-  const getFilterAccount = useQuery({
-    queryKey: ["get-filter-account", { cluster }],
-    queryFn: () => {
-      if (!filterSourcePDA) {
+  const getFilterInfo = useQuery({
+    queryKey: ["get-filter-info", { cluster }],
+    queryFn: async () => {
+      console.log("getFilterInfo start");
+      if (!address || !filterSourcePDA) {
         return null;
       }
-      return connection.getParsedAccountInfo(filterSourcePDA);
+      try {
+        const taggedTxs = await connection.getSignaturesForAddress(
+          filterSourcePDA,
+          {
+            limit: 10,
+          },
+          "confirmed"
+        );
+
+        const prefilteredTaggedTxs: string[] = [];
+        for (let i = 0; i < taggedTxs.length; i++) {
+          if (await precheckTxMemo(taggedTxs[i], address as PublicKey)) {
+            prefilteredTaggedTxs.push(taggedTxs[i].signature);
+          }
+        }
+
+        const validTx = await findFirstValidTx(
+          prefilteredTaggedTxs,
+          address,
+          connection
+        );
+
+        if (!validTx) {
+          return null;
+        } else {
+          const taggedTx = taggedTxs.filter(
+            (tx) => tx.signature === validTx.transaction.signatures[0]
+          )[0];
+
+          const { payloadPayload, signaturePayload } =
+            extractMemoPayloadSignature(taggedTx.memo!) ?? {};
+
+          if (!payloadPayload || !signaturePayload) {
+            return null;
+          }
+
+          const payloadMatches = payloadPayload.match(
+            /url:'(?<url>.*?)'; hash:'(?<hash>.*?)'; blockSlot:'(?<bh>.*?)'/
+          );
+          console.log(payloadMatches?.groups);
+          const signatureMatches = signaturePayload.match(/(?<signature>.*)/);
+          console.log(signatureMatches?.groups);
+
+          if (
+            !payloadMatches?.groups?.["url"] ||
+            !payloadMatches?.groups?.["hash"]
+          ) {
+            return null;
+          }
+          console.log("getFilterInfo return");
+          return {
+            url: payloadMatches.groups["url"],
+            hash: payloadMatches.groups["hash"],
+          };
+        }
+      } catch (e) {
+        console.error(e);
+        throw e;
+      }
     },
-    enabled: !!wallet.publicKey,
+    enabled: !!address && !!filterSourcePDA,
   });
 
-  const initialize = useMutation({
-    mutationKey: ["program", "initialize", { cluster }],
-    mutationFn: async () =>
-      (filterSourcePDA &&
-        program.methods
-          .initialize()
-          .accounts({
-            filterSource: filterSourcePDA,
-          })
-          .rpc()) ??
-      null,
-    onSuccess: (signature) => {
-      signature && transactionToast(signature);
+  useEffect(() => {
+    getFilterInfo.refetch();
+  }, [getFilterInfo]);
+
+  const setFilterMemo = useCallback(
+    async (url: string, hash: string) => {
+      const { context: latestBlockHashContext, value: latestBlockHash } =
+        await connection.getLatestBlockhashAndContext("confirmed");
+
+      if (!wallet.publicKey) {
+        console.error("wallet not connected");
+        return;
+      }
+
+      if (!address) {
+        return;
+      }
+
+      if (!address.equals(wallet.publicKey)) {
+        console.error("wallet not equal to current viewing address");
+        return;
+      }
+
+      if (!wallet.signMessage) {
+        return;
+      }
+
+      if (!filterSourcePDA) {
+        return;
+      }
+
+      try {
+        const messagePayload = `url:'${url}'; hash:'${hash}'; blockSlot:'${latestBlockHashContext.slot}'`;
+        const signature = base58.encode(
+          await wallet.signMessage(Buffer.from(messagePayload, "utf-8"))
+        );
+
+        const tagAccount = filterSourcePDA;
+
+        const messageV0 = new TransactionMessage({
+          payerKey: wallet.publicKey,
+          recentBlockhash: latestBlockHash.blockhash,
+          instructions: [
+            new TransactionInstruction({
+              keys: [
+                { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+              ],
+              data: Buffer.from("Payload:" + messagePayload, "utf-8"),
+              programId: MEMO_PROGRAM_ID,
+            }),
+            new TransactionInstruction({
+              keys: [
+                { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+              ],
+              data: Buffer.from("Signature:" + signature, "utf-8"),
+              programId: MEMO_PROGRAM_ID,
+            }),
+            SystemProgram.transfer({
+              fromPubkey: wallet.publicKey,
+              toPubkey: tagAccount,
+              lamports: 0,
+            }),
+          ],
+        }).compileToV0Message();
+
+        const tx = new VersionedTransaction(messageV0);
+        const txHash = await wallet.sendTransaction(
+          tx as any as Transaction,
+          connection,
+          undefined as any
+        );
+        await connection.confirmTransaction(
+          {
+            blockhash: latestBlockHash.blockhash,
+            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+            signature: txHash,
+          },
+          "confirmed"
+        );
+        return txHash;
+      } catch (e) {
+        console.error(e);
+        throw e;
+      }
     },
-    onError: () => toast.error("Failed to run program"),
-  });
+    [address, connection, filterSourcePDA, wallet]
+  );
 
   const setFilter = useMutation({
     mutationKey: ["program", "setFilter", { cluster }],
@@ -96,17 +252,21 @@ export const ProgramContextProvider = ({ children }) => {
       hash,
     }: {
       url: string;
-      hash: number[];
+      hash: string;
     }): Promise<string | null> => {
+      if (!wallet.publicKey) {
+        console.error("wallet not connected");
+        return null;
+      }
+      if (!address) {
+        return null;
+      }
+      if (!address.equals(wallet.publicKey)) {
+        console.error("wallet not equal to current viewing address");
+        return null;
+      }
       console.log(hash, url, filterSourcePDA?.toString());
-      return (
-        (filterSourcePDA &&
-          program.methods
-            .setFilter(hash, url)
-            .accounts({ filterSource: filterSourcePDA })
-            .rpc()) ??
-        null
-      );
+      return (filterSourcePDA && (await setFilterMemo(url, hash))) ?? null;
     },
     onSuccess: (signature) => {
       signature && transactionToast(signature);
@@ -116,7 +276,14 @@ export const ProgramContextProvider = ({ children }) => {
 
   return (
     <ProgramContext.Provider
-      value={{ program, programId, getFilterAccount, initialize, setFilter }}
+      value={{
+        program,
+        programId,
+        getFilterInfo,
+        setFilter,
+        address,
+        setAddress,
+      }}
     >
       {children}
     </ProgramContext.Provider>

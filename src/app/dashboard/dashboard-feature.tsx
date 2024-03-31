@@ -1,24 +1,54 @@
-import { AppHero } from '../ui/ui-layout';
-
-const links: { label: string; href: string }[] = [
-  { label: 'Solana Docs', href: 'https://docs.solana.com/' },
-  { label: 'Solana Faucet', href: 'https://faucet.solana.com/' },
-  { label: 'Solana Cookbook', href: 'https://solanacookbook.com/' },
-  { label: 'Solana Stack Overflow', href: 'https://solana.stackexchange.com/' },
-  {
-    label: 'Solana Developers GitHub',
-    href: 'https://github.com/solana-developers/',
-  },
-];
+import { Button, Input, Tooltip } from "antd";
+import { AppHero } from "../ui/ui-layout";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useCallback, useEffect, useState } from "react";
+import { SearchOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 export default function DashboardFeature() {
+  const wallet = useWallet();
+
+  const [inputAddress, setInputAddress] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (wallet.publicKey) {
+      setInputAddress(wallet.publicKey.toBase58());
+    }
+  }, [wallet.publicKey]);
+
+  const goSearch = useCallback(() => {
+    if (inputAddress && inputAddress.trim().length > 0) {
+      navigate(`/profile/${inputAddress}`);
+    }
+  }, [inputAddress, navigate]);
+
   return (
     <div>
-      <AppHero title="gm" subtitle="Say hi to your new Solana dApp." />
+      <AppHero title="Solstage" subtitle="Your Wallet, Your NFT Profile" />
       <div className="max-w-xl mx-auto py-6 sm:px-6 lg:px-8 text-center">
         <div className="space-y-2">
-          <p>Here are some helpful links to get you started.</p>
-          {links.map((link, index) => (
+          <h2>Wallet address to check:</h2>
+          <Input
+            defaultValue={inputAddress}
+            value={inputAddress}
+            onChange={(e) => setInputAddress(e.target.value)}
+            placeholder="Input the wallet address to view"
+            size="large"
+            className={"w-[420px]"}
+          />
+          <div className="space-x-2 inline-block m-1"></div>
+          <Tooltip title="search">
+            <Button
+              type="primary"
+              shape="circle"
+              className="bg-[#1677ff]"
+              icon={<SearchOutlined />}
+              disabled={!inputAddress || inputAddress.trim().length === 0}
+              onClick={goSearch}
+            />
+          </Tooltip>
+          {/* {links.map((link, index) => (
             <div key={index}>
               <a
                 href={link.href}
@@ -29,7 +59,7 @@ export default function DashboardFeature() {
                 {link.label}
               </a>
             </div>
-          ))}
+          ))} */}
         </div>
       </div>
     </div>
