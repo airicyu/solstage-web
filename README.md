@@ -13,7 +13,8 @@ Welcome to Solstage, a platform to manage and display your NFT collections. And 
 Our solution is simple:
 
 - We provide you the "Stage", "Backstage" and "Junkbox" filtering categories to your NFTs.
-- People can look around other people's "Stage" like visiting the trophy room!
+- It is up to you to manage which NFTs are on "Stage" and "Backstage".
+- People can look around anyone's "Stage" like visiting the trophy room!
 
 ----------
 
