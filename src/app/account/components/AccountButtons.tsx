@@ -17,8 +17,8 @@ export function AccountButtons({ address }: { address: PublicKey }) {
   const [isLoadingInit, setIsLoadingInit] = useState(false);
 
   const needInit = useMemo(() => {
-    return storageAcc === null;
-  }, [storageAcc]);
+    return !hasStoageAccount;
+  }, [hasStoageAccount]);
 
   return (
     <div>

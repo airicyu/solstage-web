@@ -60,14 +60,26 @@ export const UploadFilterContextProvider = ({ children }) => {
         const acc = accounts.find(
           (acc) => acc.account.identifier === STORAGE_FILTER_ACC_NAME
         )?.publicKey;
-        console.log("setStorageAcc(acc);");
-        setContextState((state) => ({
-          ...state,
-          drive,
-          hasStoageAccount: true,
-          storageAcc: acc,
-        }));
-        toast.success("Storage account loaded.");
+
+        if (acc) {
+          console.log("setStorageAcc(acc);");
+          setContextState((state) => ({
+            ...state,
+            drive,
+            hasStoageAccount: true,
+            storageAcc: acc,
+          }));
+          toast.success("Storage account loaded.");
+        } else {
+          console.log("setStorageAcc(undefined);");
+          setContextState((state) => ({
+            ...state,
+            drive,
+            hasStoageAccount: false,
+            storageAcc: undefined,
+          }));
+          toast.success("Storage account is not found!");
+        }
       } catch (e) {
         console.log("setStorageAcc(undefined);");
         setContextState((state) => ({

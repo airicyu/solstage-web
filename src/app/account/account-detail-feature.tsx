@@ -35,10 +35,6 @@ export default function AccountDetailFeature() {
     }
   }, [address, setAddress]);
 
-  if (!address) {
-    return <div>Error loading account</div>;
-  }
-
   const viewModeNotice = useMemo(() => {
     if (!viewMode) {
       return null;
@@ -52,6 +48,10 @@ export default function AccountDetailFeature() {
           </Tooltip>
         </>
       );
+    }
+
+    if (!address) {
+      return <div>Error loading account</div>;
     }
 
     return (

@@ -25,7 +25,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
   const query = useGetWalletNfts({ address });
   const client = useQueryClient();
   const { getFilterInfo, setFilter } = useProgram();
-  const { storageAcc } = useUploadFilter();
+  const { hasStoageAccount } = useUploadFilter();
   const [filterState, setFilterState] = useState<FilterState>({
     url: undefined,
     hash: undefined,
@@ -36,8 +36,8 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
   const wallet = useWallet();
 
   const needInit = useMemo(() => {
-    return storageAcc === null;
-  }, [storageAcc]);
+    return !hasStoageAccount;
+  }, [hasStoageAccount]);
 
   const viewMode =
     !address || !wallet.publicKey || !address.equals(wallet.publicKey);
