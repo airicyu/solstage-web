@@ -50,10 +50,6 @@ export default function AccountDetailFeature() {
       );
     }
 
-    if (!address) {
-      return <div>Error loading account</div>;
-    }
-
     return (
       <>
         <Tooltip title="This is not your wallet. If you want to manage your wallet profile. Please connect to your wallet to see.">
@@ -70,6 +66,10 @@ export default function AccountDetailFeature() {
       </>
     );
   }, [viewMode, wallet.publicKey]);
+
+  if (!address) {
+    return <div>Error loading account</div>;
+  }
 
   return (
     <div>
