@@ -4,6 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useCallback, useEffect, useState } from "react";
 import { SearchOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import logo from "./../../assets/solstage-logo.png";
 
 export default function DashboardFeature() {
   const wallet = useWallet();
@@ -25,10 +26,21 @@ export default function DashboardFeature() {
 
   return (
     <div>
-      <AppHero title="Solstage" subtitle="Your Wallet, Your NFT Profile" />
-      <div className="max-w-xl mx-auto py-6 sm:px-6 lg:px-8 text-center">
+      <AppHero
+        title="Solstage"
+        subtitle={
+          <>
+            <p className="py-[10px]">Manage your NFTs on the Stage!</p>
+            <div className="space-y-2 flex justify-center">
+              <img className="h-[200px]" alt="Logo" src={logo} />
+            </div>
+          </>
+        }
+      />
+
+      <div className="max-w-xl mx-auto py-2 sm:px-6 lg:px-8 text-center">
         <div className="space-y-2">
-          <h2>Wallet address to check:</h2>
+          Search for wallet profile:
           <Input
             defaultValue={inputAddress}
             value={inputAddress}
@@ -48,18 +60,6 @@ export default function DashboardFeature() {
               onClick={goSearch}
             />
           </Tooltip>
-          {/* {links.map((link, index) => (
-            <div key={index}>
-              <a
-                href={link.href}
-                className="link"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {link.label}
-              </a>
-            </div>
-          ))} */}
         </div>
       </div>
     </div>

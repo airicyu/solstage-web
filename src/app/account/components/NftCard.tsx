@@ -1,7 +1,7 @@
 import {
-  SketchOutlined,
   AppstoreOutlined,
   StopOutlined,
+  HeartOutlined,
 } from "@ant-design/icons";
 import { Card, Tooltip, Button } from "antd";
 import { useState, useCallback, useMemo } from "react";
@@ -33,36 +33,38 @@ export function NftCard({
     } else {
       return (
         <>
-          <hr />
-          <>
+          <div className="my-1">
+            <hr />
+          </div>
+          <div className="my-1">
             {currentType !== "stage" && (
               <Button
+                className="mx-[3px]"
                 onClick={() => {
                   moveItemHandler(item, currentType, "stage");
                 }}
-              >
-                <SketchOutlined />
-              </Button>
+                icon={<HeartOutlined />}
+              ></Button>
             )}
             {currentType !== "backstage" && (
               <Button
+                className="mx-[3px]"
                 onClick={() => {
                   moveItemHandler(item, currentType, "backstage");
                 }}
-              >
-                <AppstoreOutlined />
-              </Button>
+                icon={<AppstoreOutlined />}
+              ></Button>
             )}
             {currentType !== "junkbox" && (
               <Button
+                className="mx-[3px]"
                 onClick={() => {
                   moveItemHandler(item, currentType, "junkbox");
                 }}
-              >
-                <StopOutlined />
-              </Button>
+                icon={<StopOutlined />}
+              ></Button>
             )}
-          </>
+          </div>
         </>
       );
     }

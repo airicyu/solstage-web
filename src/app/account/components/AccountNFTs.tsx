@@ -1,12 +1,12 @@
 import {
-  SketchOutlined,
   AppstoreOutlined,
   StopOutlined,
+  HeartOutlined,
 } from "@ant-design/icons";
 import { PublicKey } from "@solana/web3.js";
 import { IconRefresh } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Tabs } from "antd";
+import { Tabs, Tag } from "antd";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { useCluster } from "../../cluster/cluster-data-access";
@@ -18,6 +18,7 @@ import { FilterState, moveItemGetUpdateFilter } from "../account-utils";
 import { NFTAssetResultData } from "../nft-query/asset-result-data";
 import { NftsDisplay } from "./NftsDisplay";
 import { useWallet } from "@solana/wallet-adapter-react";
+import "./AccountNFTs.css";
 
 export function AccountNFTs({ address }: { address: PublicKey }) {
   // const [showAll, setShowAll] = useState(false);
@@ -267,9 +268,11 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
   const stageDisplay = useMemo(() => {
     if (query.isSuccess) {
       return (
-        <div>
+        <div className="my-4">
           {stageItems.length === 0 ? (
-            <div>No Stage NFTs found.</div>
+            <div className="text-center">
+              <Tag className="text-xl">No NFTs on Stage.</Tag>
+            </div>
           ) : (
             <div>
               <NftsDisplay
@@ -293,9 +296,11 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
   const backstageDisplay = useMemo(() => {
     if (query.isSuccess) {
       return (
-        <div>
+        <div className="my-4">
           {backstageItems.length === 0 ? (
-            <div>No Stage NFTs found.</div>
+            <div className="text-center">
+              <Tag className="text-xl">No NFTs on Backstage.</Tag>
+            </div>
           ) : (
             <div>
               <NftsDisplay
@@ -319,9 +324,11 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
   const junkboxDisplay = useMemo(() => {
     if (query.isSuccess) {
       return (
-        <div>
+        <div className="my-4">
           {junkBoxItems.length === 0 ? (
-            <div>No Junk NFTs found.</div>
+            <div className="text-center">
+              <Tag className="text-xl">No NFTs in Junkbox.</Tag>
+            </div>
           ) : (
             <div>
               <NftsDisplay
@@ -385,7 +392,9 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
               {
                 label: (
                   <>
-                    <SketchOutlined /> STAGE
+                    <div className="text-2xl">
+                      <HeartOutlined /> Stage
+                    </div>
                   </>
                 ),
                 key: "stage",
@@ -394,25 +403,20 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
               {
                 label: (
                   <>
-                    <AppstoreOutlined /> BACKSTAGE
+                    <div className="text-2xl">
+                      <AppstoreOutlined /> Backstage
+                    </div>
                   </>
                 ),
                 key: "backstage",
                 children: backstageDisplay,
               },
-              // {
-              //   label: (
-              //     <>
-              //       <GiftOutlined /> GIFT
-              //     </>
-              //   ),
-              //   key: "gift",
-              //   children: <>Up coming!</>,
-              // },
               {
                 label: (
                   <>
-                    <StopOutlined /> JUNKBOX
+                    <div className="text-2xl">
+                      <StopOutlined /> Junkbox
+                    </div>
                   </>
                 ),
                 key: "junkbox",
