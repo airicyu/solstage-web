@@ -98,17 +98,20 @@ export const ProgramContextProvider = ({ children }: { children: any }) => {
         const taggedTxs = await connection.getSignaturesForAddress(
           filterSourcePDA,
           {
-            limit: 10,
+            limit: 100,
           },
           "confirmed"
         );
 
-        const prefilteredTaggedTxs: string[] = [];
-        for (let i = 0; i < taggedTxs.length; i++) {
-          if (await precheckTxMemo(taggedTxs[i], address as PublicKey)) {
-            prefilteredTaggedTxs.push(taggedTxs[i].signature);
-          }
-        }
+        const prefilteredTaggedTxs: string[] = (
+          await Promise.all(
+            taggedTxs.map((taggedTx) =>
+              precheckTxMemo(taggedTx, address as PublicKey).then((res) =>
+                res ? taggedTx.signature : ""
+              )
+            )
+          )
+        ).filter((_) => _ !== "");
 
         const validTx = await findFirstValidTx(
           prefilteredTaggedTxs,

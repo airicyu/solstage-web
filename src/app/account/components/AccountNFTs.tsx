@@ -129,7 +129,13 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
           uploadUrl
         );
         if (uploadUrl) {
-          await setFilter?.mutateAsync({ url: uploadUrl, hash });
+          if (
+            uploadUrl !== filterState.url ||
+            (filterState.hash !== "" && filterState.hash !== hash)
+          ) {
+            await setFilter?.mutateAsync({ url: uploadUrl, hash: "" });
+          }
+
           await client.invalidateQueries({
             queryKey: ["get-filter-info", { cluster }],
           });
@@ -147,6 +153,8 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
       client,
       cluster,
       filterState.filter,
+      filterState.hash,
+      filterState.url,
       getFilterInfo,
       needInit,
       setFilter,
@@ -154,6 +162,9 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     ]
   );
 
+  /**
+   * build whitelist filter object for `stage``
+   */
   const stageWhitelistFilter = useMemo(() => {
     const whitelistFilter = {
       items: {},
@@ -170,6 +181,9 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     return whitelistFilter;
   }, [filterState.filter]);
 
+  /**
+   * build whitelist filter object for `backstage`
+   */
   const backstageWhitelistFilter = useMemo(() => {
     const whitelistFilter = {
       items: {},
@@ -186,6 +200,9 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     return whitelistFilter;
   }, [filterState.filter]);
 
+  /**
+   * build query items sorted by floor price
+   */
   const queryItems = useMemo(() => {
     return query.data?.slice().sort((a, b) => {
       if (a.floorPrice !== null && b.floorPrice === null) {
@@ -200,6 +217,9 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     });
   }, [query.data]);
 
+  /**
+   * build stage items
+   */
   const stageItems = useMemo(() => {
     const result =
       queryItems?.filter((item) => {
@@ -209,19 +229,21 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     return result.slice(0, 5);
   }, [queryItems, showAll, stageWhitelistFilter.items]);
 
+  /**
+   * build backstage items
+   */
   const backstageItems = useMemo(() => {
-    // console.log(query.data);
     const result =
       queryItems?.filter((item) => {
-        if ((item.group ?? "")?.startsWith("2i")) {
-          console.log(item.group);
-        }
         return item?.group && backstageWhitelistFilter.items[item.address];
       }) ?? [];
     if (showAll) return result;
     return result.slice(0, 5);
   }, [queryItems, showAll, backstageWhitelistFilter.items]);
 
+  /**
+   * build junkbox items
+   */
   const junkBoxItems = useMemo(() => {
     const result =
       queryItems?.filter(
@@ -239,6 +261,9 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     stageWhitelistFilter.items,
   ]);
 
+  /**
+   * display stage items
+   */
   const stageDisplay = useMemo(() => {
     if (query.isSuccess) {
       return (
@@ -262,6 +287,9 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     }
   }, [moveItemHandler, query.isSuccess, stageItems, viewMode]);
 
+  /**
+   * display backstage items
+   */
   const backstageDisplay = useMemo(() => {
     if (query.isSuccess) {
       return (
@@ -285,6 +313,9 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     }
   }, [query.isSuccess, backstageItems, viewMode, moveItemHandler]);
 
+  /**
+   * display junkbox items
+   */
   const junkboxDisplay = useMemo(() => {
     if (query.isSuccess) {
       return (

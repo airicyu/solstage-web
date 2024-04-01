@@ -6,7 +6,7 @@ import {
 } from "@solana/web3.js";
 import { useContext } from "react";
 import { ProgramContext } from "./program-data-access";
-import { verifyEd25516 } from "../utils/hash";
+import { verifyEd25516 as verifyEd25519 } from "../utils/hash";
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 
 export const MEMO_PROGRAM_ID = new PublicKey(
@@ -43,9 +43,9 @@ export const extractMemoPayloadSignature = (memo: string) => {
   );
   if (
     !payloadMatches ||
-    !payloadMatches.groups?.url ||
-    !payloadMatches.groups?.hash ||
-    !payloadMatches.groups?.blockSlot
+    payloadMatches.groups?.url === undefined ||
+    !payloadMatches.groups?.hash === undefined ||
+    !payloadMatches.groups?.blockSlot === undefined
   ) {
     return null;
   }
@@ -59,10 +59,13 @@ export const extractMemoPayloadSignature = (memo: string) => {
   return {
     payloadPayload,
     signaturePayload,
+    url: payloadMatches.groups.url,
+    hash: payloadMatches.groups.hash,
+    blockSlot: payloadMatches.groups.blockSlot,
   };
 };
 
-export const precheckTxMemo = (
+export const precheckTxMemo = async (
   confirmedSignatureInfo: ConfirmedSignatureInfo,
   signer: PublicKey
 ) => {
@@ -73,14 +76,22 @@ export const precheckTxMemo = (
   if (confirmedSignatureInfo.err) {
     return false;
   }
-  const { payloadPayload, signaturePayload } =
+  const { payloadPayload, signaturePayload, blockSlot } =
     extractMemoPayloadSignature(memo) ?? {};
 
   if (!payloadPayload || !signaturePayload) {
     return false;
   }
 
-  return verifyEd25516(
+  if (
+    !confirmedSignatureInfo.blockTime ||
+    !blockSlot ||
+    confirmedSignatureInfo.blockTime > +blockSlot + 150
+  ) {
+    return false;
+  }
+
+  return verifyEd25519(
     payloadPayload,
     Array.from(bs58.decode(signaturePayload)),
     signer
