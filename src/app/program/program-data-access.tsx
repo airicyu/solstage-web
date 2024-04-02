@@ -134,7 +134,7 @@ export const ProgramContextProvider = ({ children }: { children: any }) => {
           }
 
           const payloadMatches = payloadPayload.match(
-            /url:'(?<url>.*?)'; hash:'(?<hash>.*?)'; blockSlot:'(?<bh>.*?)'/
+            /url:'(?<url>.*?)'; hash:'(?<hash>.*?)'; blockSlot:'(?<blockSlot>.*?)'/
           );
           console.log(payloadMatches?.groups);
           const signatureMatches = signaturePayload.match(/(?<signature>.*)/);
@@ -146,6 +146,7 @@ export const ProgramContextProvider = ({ children }: { children: any }) => {
           ) {
             return null;
           }
+
           console.log("getFilterInfo return");
           return {
             url: payloadMatches.groups["url"],

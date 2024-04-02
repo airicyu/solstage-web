@@ -40,14 +40,13 @@ export default function DashboardFeature() {
 
       <div className="max-w-xl mx-auto py-2 sm:px-6 lg:px-8 text-center">
         <div className="space-y-2">
-          Search for wallet profile:
           <Input
             defaultValue={inputAddress}
             value={inputAddress}
             onChange={(e) => setInputAddress(e.target.value)}
             placeholder="Input the wallet address to view"
-            size="large"
-            className={"w-[420px]"}
+            size="small"
+            className={"w-[370px]"}
           />
           <div className="space-x-2 inline-block m-1"></div>
           <Tooltip title="search">
