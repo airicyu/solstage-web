@@ -3,7 +3,6 @@ import { ShdwDrive, StorageAccountV2 } from "@shadow-drive/sdk";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
-import { swapSolForShdw } from "../swap/swap-shdw";
 import toast from "react-hot-toast";
 
 export type UploadFilterContextType = {
