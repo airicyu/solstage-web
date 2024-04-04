@@ -16,6 +16,7 @@ Project resources:
 - Website: https://solstage.github.io/
 - Web UI repo: https://github.com/airicyu/solstage-web
 - Intro Deck: https://www.loom.com/share/6c6b82ac5bd44a8fa32cac56c1907db6?sid=0aac1051-a332-4cfa-8cbe-0df56361daaf
+- Twitter: https://twitter.com/solstage_solana
 
 ----------
 
