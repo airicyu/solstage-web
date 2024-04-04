@@ -15,7 +15,7 @@ Project resources:
 
 - Website: https://solstage.github.io/
 - Web UI repo: https://github.com/airicyu/solstage-web
-- Sharing Deck: https://www.loom.com/share/6c6b82ac5bd44a8fa32cac56c1907db6?sid=0aac1051-a332-4cfa-8cbe-0df56361daaf
+- Intro Deck: https://www.loom.com/share/6c6b82ac5bd44a8fa32cac56c1907db6?sid=0aac1051-a332-4cfa-8cbe-0df56361daaf
 
 ----------
 
@@ -118,7 +118,7 @@ It is not your wallet, so you will see their profile in `View Mode`.
 Given that the stranger has already managed their own profile's `Stage`. Then you will end up seeing their profile like below:
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/airicyu/solstage-web/main/img/web_demo.png" width="1000">
+<img src="https://raw.githubusercontent.com/airicyu/solstage-web/main/img/view_mode_demo.png" width="1000">
 </p>
 
 ----------
