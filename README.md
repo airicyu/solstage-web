@@ -134,9 +134,9 @@ Given that the stranger has already managed their own profile's `Stage`. Then yo
 ## TODO
 - Polish Stage UI to be more attractive. The `Stage` should be more sexy.
 - Provide batch updates so multiple move operation can be done by only 1 sign approve transaction.
+- May maintain a auto whitelist to some famous NFT collections. So those NFTs are by-default fall into `Backstage` instead of `Junkbox` automatically.
+- Provide an open standard for NFT pinning for `Stage`. So any Wallet Apps, DApps can make use of our filter for better & consistent NFT display UX to the user.
 
 ## Long term TODO
 
-- Provide some interaction between users. It could be something like users may "likes" anyone's Stage profile when they visit.
-
-- Provide an open standard for NFT pinning (Like the stage). So Wallet Apps, DApps can make use of our filter for better display UX to the user.
+- Provide some interaction between users. It could be something like users may "likes" anyone's Stage profile NFTs when they visit.
