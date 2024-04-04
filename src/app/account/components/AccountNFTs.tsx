@@ -317,7 +317,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
    * display backstage items
    */
   const backstageDisplay = useMemo(() => {
-    if (query.isSuccess) {
+    if (query.isSuccess && !viewMode) {
       return (
         <div className="my-4">
           {backstageItems.length === 0 ? (
@@ -345,7 +345,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
    * display junkbox items
    */
   const junkboxDisplay = useMemo(() => {
-    if (query.isSuccess) {
+    if (query.isSuccess && !viewMode) {
       return (
         <div className="my-4">
           {junkBoxItems.length === 0 ? (
@@ -417,28 +417,31 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
                 key: "stage",
                 children: stageDisplay,
               },
-              {
-                label: (
-                  <>
-                    <div className="text-2xl">
-                      <AppstoreOutlined /> Backstage
-                    </div>
-                  </>
-                ),
-                key: "backstage",
-                children: backstageDisplay,
-              },
-              {
-                label: (
-                  <>
-                    <div className="text-2xl">
-                      <StopOutlined /> Junkbox
-                    </div>
-                  </>
-                ),
-                key: "junkbox",
-                children: junkboxDisplay,
-              },
+              ...((!viewMode && [
+                {
+                  label: (
+                    <>
+                      <div className="text-2xl">
+                        <AppstoreOutlined /> Backstage
+                      </div>
+                    </>
+                  ),
+                  key: "backstage",
+                  children: backstageDisplay,
+                },
+                {
+                  label: (
+                    <>
+                      <div className="text-2xl">
+                        <StopOutlined /> Junkbox
+                      </div>
+                    </>
+                  ),
+                  key: "junkbox",
+                  children: junkboxDisplay,
+                },
+              ]) ||
+                []),
             ]}
           />
         </div>

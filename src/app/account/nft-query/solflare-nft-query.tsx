@@ -1,19 +1,61 @@
 import { NFTAssetResultData } from "./asset-result-data";
 import axios from "axios";
 
+const CACHE_STORE_KEY = "solflare-portfolio-nft-api-result-cache";
+
+function getCacheItem(address: string): NFTAssetResultData[] | null {
+  const apiResultRawCache = localStorage.getItem(CACHE_STORE_KEY);
+  if (apiResultRawCache) {
+    const cache = JSON.parse(apiResultRawCache);
+    if (!Array.isArray(cache)) {
+      localStorage.removeItem(CACHE_STORE_KEY);
+    } else {
+      const item = cache.find((item) => item.address === address);
+      if (item) {
+        if (Date.now() < item.ex) {
+          return item.data as NFTAssetResultData[];
+        } else {
+          localStorage.setItem(
+            CACHE_STORE_KEY,
+            JSON.stringify(cache.filter((item) => item.address !== address))
+          );
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function saveCacheItem(address: string, data: NFTAssetResultData[]) {
+  const cacheItem = {
+    address,
+    data,
+    ex: Date.now() + 1000 * 60 * 5,
+  };
+
+  const apiResultRawCache = localStorage.getItem(CACHE_STORE_KEY);
+
+  let cache: any[] = [];
+
+  if (apiResultRawCache) {
+    cache = JSON.parse(apiResultRawCache);
+    if (!Array.isArray(cache)) {
+      cache = [];
+    }
+  }
+  cache = [cacheItem, ...cache.filter((item) => item.data.address !== address)];
+  cache.sort((a, b) => b.ex - a.ex);
+  cache = cache.slice(0, 10);
+  localStorage.setItem(CACHE_STORE_KEY, JSON.stringify(cache));
+}
+
 export async function queryOwnerNft(
   address: string
 ): Promise<NFTAssetResultData[]> {
-  const apiResultCache = localStorage.getItem(
-    "solflare-portfolio-nft-api-result-cache"
-  );
-  if (apiResultCache) {
-    const cache = JSON.parse(apiResultCache);
-    if (cache.address === address && Date.now() < cache.ex) {
-      return cache.data;
-    } else {
-      localStorage.removeItem("solflare-portfolio-nft-api-result-cache");
-    }
+  const cacheData = getCacheItem(address);
+
+  if (cacheData) {
+    return cacheData;
   }
 
   const { data: queryResponse } = await axios({
@@ -44,14 +86,7 @@ export async function queryOwnerNft(
     })
     .filter((nft) => nft.group !== "scam");
 
-  localStorage.setItem(
-    "solflare-portfolio-nft-api-result-cache",
-    JSON.stringify({
-      address,
-      data: nftModels,
-      ex: Date.now() + 1000 * 60 * 5,
-    })
-  );
+  saveCacheItem(address, nftModels);
   return nftModels;
 }
 
