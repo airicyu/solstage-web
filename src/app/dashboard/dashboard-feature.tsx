@@ -30,7 +30,9 @@ export default function DashboardFeature() {
         title="Solstage"
         subtitle={
           <>
-            <p className="py-[10px]">Manage your NFTs on the Stage!</p>
+            <p className="py-[10px]">
+              Putting NFTs in categorized filter boxes!
+            </p>
             <div className="space-y-2 flex justify-center">
               <img className="h-[200px]" alt="Logo" src={logo} />
             </div>

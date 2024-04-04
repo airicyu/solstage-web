@@ -6,12 +6,6 @@ export type Filter = {
   loadFilters: string[];
 };
 
-export type FilterState = {
-  url?: string;
-  hash?: string;
-  filter: Filter | null;
-};
-
 export const moveItemGetUpdateFilter = (
   item: NFTAssetResultData,
   from: string,

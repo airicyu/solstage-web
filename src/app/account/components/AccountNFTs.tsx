@@ -14,7 +14,7 @@ import { useUploadFilter } from "../../filter/upload-filter-util";
 import { useProgram } from "../../program/program-utils";
 import { bytesToHexString, hashSha256 } from "../../utils/hash";
 import { useGetWalletNfts } from "../account-data-access";
-import { FilterState, moveItemGetUpdateFilter } from "../account-utils";
+import { Filter, moveItemGetUpdateFilter } from "../account-utils";
 import { NFTAssetResultData } from "../nft-query/asset-result-data";
 import { NftsDisplay } from "./NftsDisplay";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -31,6 +31,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     url: undefined,
     hash: undefined,
     filter: null,
+    refreshFilterFlag: true,
   });
   const { uploadFilter } = useUploadFilter();
   const { cluster } = useCluster();
@@ -55,14 +56,27 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
       "load filter url & hash from filter info",
       getFilterInfo?.data?.hash
     );
+
+    const refreshFilterFlag =
+      filterState.refreshFilterFlag ||
+      filterState.url !== getFilterInfo.data?.url ||
+      filterState.hash !== getFilterInfo.data?.hash;
+
     setFilterState((prev) => {
       return {
         ...prev,
         hash: getFilterInfo.data?.hash,
         url: getFilterInfo.data?.url,
+        refreshFilterFlag,
       };
     });
-  }, [getFilterInfo, getFilterInfo?.data]);
+  }, [
+    filterState.hash,
+    filterState.refreshFilterFlag,
+    filterState.url,
+    getFilterInfo,
+    getFilterInfo?.data,
+  ]);
 
   /**
    * check filter hash and update Filter obj
@@ -71,6 +85,10 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     (async () => {
       console.log("check filter hash and update Filter obj", filterState.hash);
       if (!filterState.url) {
+        return;
+      }
+
+      if (!filterState.refreshFilterFlag) {
         return;
       }
 
@@ -94,10 +112,21 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
       const filter = JSON.parse(filterText);
       console.log("set filter obj:", filter);
       setFilterState((prev) => {
-        return { ...prev, filter };
+        return { ...prev, filter, refreshFilterFlag: false };
       });
     })();
-  }, [filterState.hash, filterState.url]);
+  }, [filterState.hash, filterState.refreshFilterFlag, filterState.url]);
+
+  const refreshFilter = useCallback(async () => {
+    await client.invalidateQueries({
+      queryKey: ["get-filter-info", { cluster }],
+    });
+    await getFilterInfo?.refetch();
+    console.log("getFilterInfo?.refetch()");
+    setFilterState((prev) => {
+      return { ...prev, refreshFilterFlag: true };
+    });
+  }, [client, cluster, getFilterInfo]);
 
   /**
    * handler to upload and update filter, will pass to NftsDisplay items to call
@@ -137,11 +166,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
             await setFilter?.mutateAsync({ url: uploadUrl, hash: "" });
           }
 
-          await client.invalidateQueries({
-            queryKey: ["get-filter-info", { cluster }],
-          });
-          getFilterInfo?.refetch();
-          console.log("getFilterInfo?.refetch()");
+          await refreshFilter();
         }
       } catch (e) {
         console.error(e);
@@ -151,13 +176,11 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
       }
     },
     [
-      client,
-      cluster,
       filterState.filter,
       filterState.hash,
       filterState.url,
-      getFilterInfo,
       needInit,
+      refreshFilter,
       setFilter,
       uploadFilter,
     ]
@@ -363,13 +386,7 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
               ) : (
                 <button
                   className="btn btn-sm btn-outline"
-                  onClick={async () => {
-                    await client.invalidateQueries({
-                      queryKey: ["get-filter-info", { cluster }],
-                    });
-                    getFilterInfo?.refetch();
-                    console.log("getFilterInfo?.refetch()");
-                  }}
+                  onClick={refreshFilter}
                 >
                   <IconRefresh size={16} />
                 </button>
@@ -429,3 +446,10 @@ export function AccountNFTs({ address }: { address: PublicKey }) {
     </>
   );
 }
+
+type FilterState = {
+  url?: string;
+  hash?: string;
+  filter: Filter | null;
+  refreshFilterFlag: boolean;
+};

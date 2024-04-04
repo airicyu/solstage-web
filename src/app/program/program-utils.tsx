@@ -84,9 +84,9 @@ export const precheckTxMemo = async (
   }
 
   if (
-    !confirmedSignatureInfo.blockTime ||
+    !confirmedSignatureInfo.slot ||
     !blockSlot ||
-    confirmedSignatureInfo.blockTime > +blockSlot + 150
+    confirmedSignatureInfo.slot > +blockSlot + 150
   ) {
     return false;
   }

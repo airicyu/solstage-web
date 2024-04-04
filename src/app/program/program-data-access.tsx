@@ -142,7 +142,7 @@ export const ProgramContextProvider = ({ children }: { children: any }) => {
 
           if (
             !payloadMatches?.groups?.["url"] ||
-            !payloadMatches?.groups?.["hash"]
+            payloadMatches?.groups?.["hash"] === undefined
           ) {
             return null;
           }
@@ -185,10 +185,12 @@ export const ProgramContextProvider = ({ children }: { children: any }) => {
       }
 
       if (!wallet.signMessage) {
+        console.error("wallet does not support signMessage");
         return;
       }
 
       if (!filterSourcePDA) {
+        console.error("filterSourcePDA not found");
         return;
       }
 
@@ -269,7 +271,7 @@ export const ProgramContextProvider = ({ children }: { children: any }) => {
         console.error("wallet not equal to current viewing address");
         return null;
       }
-      console.log(hash, url, filterSourcePDA?.toString());
+      console.log("setFilter", hash, url, filterSourcePDA?.toString());
       return (filterSourcePDA && (await setFilterMemo(url, hash))) ?? null;
     },
     onSuccess: (signature) => {

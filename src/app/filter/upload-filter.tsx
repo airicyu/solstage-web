@@ -31,7 +31,7 @@ type UploadFilterContextState = {
   uploadUrl?: string;
 };
 
-const STORAGE_FILTER_ACC_NAME = "solstage-filter";
+const STORAGE_FILTER_ACC_NAME = "solstage";
 const FILTER_FILE_NAME = "default-filter.json";
 
 export const UploadFilterContextProvider = ({ children }) => {
@@ -104,39 +104,43 @@ export const UploadFilterContextProvider = ({ children }) => {
 
       console.log("ata account info", ataAccountInfo);
       if (!ataAccountInfo) {
-        const loadingToastHandler = toast(
-          "No SHDW account found, swapping SOL for some SHDW for account bootstrap."
-        );
-        try {
-          await swapSolForShdw(wallet, connection, 0.1);
-          toast.success("Swap SOL for SHDW transaction succeeded!");
-        } catch (e) {
-          toast.error(
-            "Swap SOL for SHDW transaction failed! Please try again."
-          );
-          throw e;
-        } finally {
-          toast.dismiss(loadingToastHandler);
-        }
+        toast.error("You need to have at least 0.01 $SHDW to create storage!");
+        throw new Error("No $SHDW token account.");
+        // const loadingToastHandler = toast(
+        //   "No SHDW account found, swapping SOL for some SHDW for account bootstrap."
+        // );
+        // try {
+        //   await swapSolForShdw(wallet, connection, 0.1);
+        //   toast.success("Swap SOL for SHDW transaction succeeded!");
+        // } catch (e) {
+        //   toast.error(
+        //     "Swap SOL for SHDW transaction failed! Please try again."
+        //   );
+        //   throw e;
+        // } finally {
+        //   toast.dismiss(loadingToastHandler);
+        // }
       }
 
       const info = await connection.getTokenAccountBalance(ata);
       console.log("shdw balance", info.value.uiAmount);
-      if (info.value.uiAmount != null && info.value.uiAmount < 0.05) {
-        const loadingToastHandler = toast(
-          "Swapping SOL for some SHDW for account bootstrap."
-        );
-        try {
-          await swapSolForShdw(wallet, connection, 0.1);
-          toast.success("Swap SOL for SHDW transaction succeeded!");
-        } catch (e) {
-          toast.error(
-            "Swap SOL for SHDW transaction failed! Please try again."
-          );
-          throw e;
-        } finally {
-          toast.dismiss(loadingToastHandler);
-        }
+      if (info.value.uiAmount != null && info.value.uiAmount < 0.01) {
+        toast.error("You need to have at least 0.01 $SHDW to create storage!");
+        throw new Error("Not enough SHDW token balance!");
+        // const loadingToastHandler = toast(
+        //   "Swapping SOL for some SHDW for account bootstrap."
+        // );
+        // try {
+        //   await swapSolForShdw(wallet, connection, 0.1);
+        //   toast.success("Swap SOL for SHDW transaction succeeded!");
+        // } catch (e) {
+        //   toast.error(
+        //     "Swap SOL for SHDW transaction failed! Please try again."
+        //   );
+        //   throw e;
+        // } finally {
+        //   toast.dismiss(loadingToastHandler);
+        // }
       }
       console.log("shdw balance is enough");
     },
