@@ -100,7 +100,7 @@ vi) You will then see the NFTs moved to the desired categories!
 <img src="https://raw.githubusercontent.com/airicyu/solstage-web/main/img/web_demo.png" width="1000">
 </p>
 
-## 3. Visiting the other people's profile (View Mode)
+## 3. Visiting the other people's profile (View only mode)
 
 i) Click the website menu's "Home".
 
@@ -108,11 +108,11 @@ ii) Copy the other people's wallet address into the search bar and search.
 
 iii) You will then go to their wallet profile page.
 
-It is not your wallet, so you will see their profile in `View Mode`.
+It is not your wallet, so you will see their profile in `View only mode`.
 
-### View Mode
+### View only mode
 
-`View Mode` is a mode that you are visiting the others profile.
+`View only mode` is a mode that you are visiting the others profile.
 - You cannot change the other people's categorization setup. 
 - Only the `Stage` categories NFTs are shown.
  
@@ -130,7 +130,7 @@ Given that the stranger has already managed their own profile's `Stage`. Then yo
 - UI to display wallet NFTs profile.
 - Ability to categorizing NFTs into Stage, Backstage, Junkbox.
 - Allow move NFTs between categories.
-- Allow to view other people's wallet address in VIEW mode.
+- Allow to view other people's wallet address in view only mode.
 
 ## TODO
 - Polish Stage UI to be more attractive. The `Stage` should be more sexy.
